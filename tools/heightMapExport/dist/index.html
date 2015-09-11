@@ -1,0 +1,44 @@
+<!-- index.html -->
+<html>
+<head>
+	<title>Gulp - Template</title>
+	<link rel="stylesheet" type="text/css" href="css/main.css">
+	<script type="text/javascript"
+	  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAG9LUWDKzwfaWbVAKfdVYQ-JDi10btGh8&libraries=geometry">
+	</script>
+	<script type="text/javascript" src="bundle/bundle.js"></script>
+
+	<script type="text/javascript">
+		var isMapReady = false;
+		var margin = .0005;
+		var MapModel = {
+			TL:{lat:51.452404+margin, lng:-0.045359-margin},
+			BR:{lat:51.444926-margin, lng:-0.029597+margin}
+		};
+
+		function initialize() {
+			var mapOptions = {
+				center: { lat: (MapModel.TL.lat + MapModel.BR.lat)*.5, lng: (MapModel.TL.lng + MapModel.BR.lng)*.5},
+				zoom: 16
+			};
+			map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+			window.map = map;
+			isMapReady = true;
+		}
+
+		google.maps.event.addDomListener(window, 'load', initialize);
+		google.maps.Map.prototype.clearMarkers = function() {
+			for(var i=0; i < this.markers.length; i++){
+				this.markers[i].setMap(null);
+			}
+			this.markers = new Array();
+		};
+
+
+		
+	</script>
+</head>
+<body>
+	<div id="map-canvas"></div>
+</body>
+</html>
