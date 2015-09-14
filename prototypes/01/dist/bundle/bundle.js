@@ -17,6 +17,11 @@ var dat = require("dat-gui");
 			toLoad.push(str);
 		}
 
+		for(var i=0; i<=5; i++) {
+			var str = "assets/brushes/brush"+i.toString()+".png"
+			toLoad.push(str);
+		}
+
 		var loader = new bongiovi.SimpleImageLoader();
 		loader.load(toLoad, this, this._onImageLoaded)
 
@@ -4531,6 +4536,8 @@ function SceneApp() {
 
 	this.sceneRotation.lock(true);
 	this.camera.lockRotation(false);
+	this.camera._rx.value = -.53;
+	this.camera._ry.value = -.3;
 
 	window.addEventListener("resize", this.resize.bind(this));
 }
@@ -4543,6 +4550,11 @@ p._initTextures = function() {
 	this._textureHeight = new bongiovi.GLTexture(images.heightMap);
 	var index = Math.floor(Math.random() * 33);
 	this._textureInk = new bongiovi.GLTexture(images["inkDrops" + index]);
+
+	this._brushes = [];
+	for(var i=0; i<=5; i++) {
+
+	}
 };
 
 p._initViews = function() {
@@ -4615,8 +4627,6 @@ p._init = function() {
 	for(var i=0; i<this._points.length-1; i++) {
 		var p0 = getPoint(this._points[i]);
 		var p1 = getPoint(this._points[i+1]);
-
-		console.log(p0);
 
 		positions.push(p0);
 		positions.push(p1);

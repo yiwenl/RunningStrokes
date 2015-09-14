@@ -42,8 +42,6 @@ p._init = function() {
 		var p0 = getPoint(this._points[i]);
 		var p1 = getPoint(this._points[i+1]);
 
-		console.log(p0);
-
 		positions.push(p0);
 		positions.push(p1);
 

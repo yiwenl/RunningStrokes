@@ -16,6 +16,11 @@ var dat = require("dat-gui");
 			toLoad.push(str);
 		}
 
+		for(var i=0; i<=5; i++) {
+			var str = "assets/brushes/brush"+i.toString()+".png"
+			toLoad.push(str);
+		}
+
 		var loader = new bongiovi.SimpleImageLoader();
 		loader.load(toLoad, this, this._onImageLoaded)
 
