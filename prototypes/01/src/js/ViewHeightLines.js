@@ -19,7 +19,6 @@ p._init = function() {
 	var coords = [];
 	var indices = []; 
 	var index = 0;
-	var count = 0;
 
 	function getDist(a, b) {
 		return Math.sqrt( (b[0] - a[0])*(b[0] - a[0]) + (b[1] - a[1])*(b[1] - a[1]) + (b[2] - a[2])*(b[2] - a[2]) );
@@ -35,7 +34,6 @@ p._init = function() {
 				var dist = getDist(p0, p1)
 				
 				if(dist > 400) {
-					console.log('Distance:', getDist(p0, p1));	
 					continue;
 				}
 			}
@@ -54,13 +52,10 @@ p._init = function() {
 				indices.push(index+1);
 
 				index += 2;
-
-				count ++;
 			}
 		}
 	}
 
-	console.log('Total Lines : ', count);
 
 	this.mesh = new bongiovi.Mesh(positions.length, indices.length, GL.gl.LINES);
 	this.mesh.bufferVertex(positions);
