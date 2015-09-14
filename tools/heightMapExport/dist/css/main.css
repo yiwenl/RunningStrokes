@@ -27,3 +27,9 @@ h1, h2, h3, h4, text, p {
   height: 100%;
   margin: 0;
   padding: 0; }
+
+.heightMap {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 99999; }
