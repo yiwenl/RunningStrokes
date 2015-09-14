@@ -4581,13 +4581,25 @@ p._init = function() {
 	var index = 0;
 	var count = 0;
 
+	function getDist(a, b) {
+		return Math.sqrt( (b[0] - a[0])*(b[0] - a[0]) + (b[1] - a[1])*(b[1] - a[1]) + (b[2] - a[2])*(b[2] - a[2]) );
+	}
+
 	for(var i=0; i<LineData.length; i++) {
 		var line = LineData[i];
-		console.log(i, line.length);
-		// if(line == undefined) continue;
-		for(var j=0; j<line.length-1; j++) {
+		for(var j=0; j<line.length; j++) {
 			var p0 = line[j];
 			var p1 = line[j+1];
+			if(!p1) {
+				p1 = line[0];
+				var dist = getDist(p0, p1)
+				
+				if(dist > 400) {
+					console.log('Distance:', getDist(p0, p1));	
+					continue;
+				}
+			}
+			
 
 			if(p0 !== undefined && p1 !== undefined) {
 				var a0 = [p0[0], p0[2], -p0[1]];
@@ -4600,10 +4612,6 @@ p._init = function() {
 
 				indices.push(index);
 				indices.push(index+1);
-
-				if(i === 2) {
-					console.log(j, a0, a1);
-				}
 
 				index += 2;
 
@@ -4627,7 +4635,7 @@ p.render = function() {
 	this.shader.uniform("position", "uniform3fv", [0, -60, 0]);
 	var scale = .65;
 	this.shader.uniform("scale", "uniform3fv", [.8, 2.0, .65]);
-	var grey = .25;
+	var grey = .75;
 	this.shader.uniform("color", "uniform3fv", [grey, grey, grey]);
 	this.shader.uniform("opacity", "uniform1f", 1.0);
 	GL.draw(this.mesh);
