@@ -58,9 +58,12 @@ void main(void) {
 	vec4 colorHeight = texture2D(texture, aTextureCoord);
 	vec3 pos = aVertexPosition;
 	pos = getPos(aTextureCoord);
+
+	vec2 uvRight = aTextureCoord+vec2(gap, 0.0);
+	vec2 uvBottom = aTextureCoord+vec2(0.0, gap);
 	
-	vec3 posRight = getPos(aTextureCoord+vec2(gap, 0.0));
-	vec3 posBottom = getPos(aTextureCoord+vec2(0.0, gap));
+	vec3 posRight = getPos(uvRight);
+	vec3 posBottom = getPos(uvBottom);
 
 	vec3 vRight = posRight - pos;
 	vec3 vBottom = posBottom - pos;
@@ -70,5 +73,8 @@ void main(void) {
 
     vColor = colorHeight;
     vNormal = normalize(cross(vRight, vBottom));
+    if(uvRight.x >= 1.0 || uvBottom.y >= 1.0) {
+    	vNormal = vec3(0.0, 1.0, 0.0);
+    }
     vVertexPosition = pos;
 }

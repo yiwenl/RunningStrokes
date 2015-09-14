@@ -2,6 +2,7 @@
 
 var GL = bongiovi.GL, gl;
 var ViewTerrain = require("./ViewTerrain");
+var ViewHeightLines = require("./ViewHeightLines");
 
 function SceneApp() {
 	gl = GL.gl;
@@ -28,13 +29,14 @@ p._initViews = function() {
 	this._vAxis = new bongiovi.ViewAxis();
 	this._vDotPlane = new bongiovi.ViewDotPlane();
 	this._vTerrain = new ViewTerrain();
+	this._vLines = new ViewHeightLines();
 };
 
 p.render = function() {
 	GL.clear(1, 1, .986, 1);
 	// this._vAxis.render();
 	this._vDotPlane.render();
-
+	this._vLines.render();
 	this._vTerrain.render(this._textureHeight, this._textureInk);
 };
 

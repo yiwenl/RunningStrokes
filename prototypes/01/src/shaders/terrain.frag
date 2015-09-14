@@ -10,8 +10,8 @@ varying vec3 vNormal;
 
 const vec3 DIRECTIONAL_LIGHT_COLOR 		= vec3(1.0);
 const vec3 AMBIENT_LIGHT_COLOR 			= vec3(.4);
-const float DIRECTIONAL_LIGHT_WEIGHT 	= .6;
-const vec3 DIRECTIONAL_LIGHT_POS 		= vec3(1.0);
+const float DIRECTIONAL_LIGHT_WEIGHT 	= 1.0;
+const vec3 DIRECTIONAL_LIGHT_POS 		= vec3(.5, 0.3, 1.0);
 
 float map(float value, float sx, float sy, float tx, float ty) {
 	float p = (value - sx) / ( sy - sx);
