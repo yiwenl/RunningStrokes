@@ -7,7 +7,7 @@ html, body {
 
 	overflow:hidden;
 	position: static;
-	background: #222222;
+	background: rgba(255, 255, 250, 1);
 }
 
 html {
@@ -62,4 +62,41 @@ h1,h2,h3,h4,text,p {
 		transform:scale(1.5);
 		opacity: 1;	
 	}
+}
+
+video {
+	top:0px;
+	left:0px;
+	margin-left:-9999;
+	position: absolute;;
+}
+
+.stamp {
+	width:40px;
+	height:40px;
+	position: absolute;
+	z-index: 9999;
+	right:0px;
+	top:0px;
+	margin:30px;
+	background: url(../assets/stamp.png) no-repeat;
+	background-size:100% 100%;
+}
+
+.Stats {
+	position: absolute;;
+	margin: 30px;
+	bottom:40px;
+	right:0px;
+	width:100px;
+	z-index: 999;
+}
+
+.Stats-entry {
+	font-family: Verdana;
+	padding:0px;
+	margin:0px;
+	color:black;
+	clear:both;
+	float:right;
 }

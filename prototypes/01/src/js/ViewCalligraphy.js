@@ -5,6 +5,7 @@ var gl;
 var glm;
 var W = 660;
 var H = 428;
+var glslify = require("glslify");
 
 var MathUtils = require("./MathUtils");
 
@@ -34,7 +35,7 @@ function ViewCalligraphy(points, y) {
 	// console.log(points.length, '->', this._points.length, 'Texture : ', this.textureIndex);
 
 	// bongiovi.View.call(this, null, bbongiovi.ShaderLibs.get("simpleColorFrag"));
-	bongiovi.View.call(this, bongiovi.ShaderLibs.get("generalVert"));
+	bongiovi.View.call(this, bongiovi.ShaderLibs.get("generalVert"), glslify("../shaders/calligraphy.frag"));
 }
 
 var p = ViewCalligraphy.prototype = new bongiovi.View();
@@ -67,13 +68,13 @@ p._simplifyPoints = function(points) {
 
 p._init = function() {
 	gl = GL.gl;
-	this._particles = MathUtils.getBezierPoints(this._points, this._points.length*2);
+	this._particles = MathUtils.getBezierPoints(this._points, this._points.length*3);
 
 	var dir = glm.vec3.create();
 	var z = glm.vec3.fromValues(0, 1, 0);
 	var mtxLeft = glm.mat4.create();
 	var mtxRight = glm.mat4.create();
-	var strokeSize = 10;
+	var strokeSize = 15;
 	
 	glm.mat4.identity(mtxLeft);
 	glm.mat4.identity(mtxRight);
@@ -189,7 +190,7 @@ p.render = function(texture) {
 	this.shader.bind();
 	if(texture) {
 		this.shader.uniform("texture", "uniform1i", 0);
-		texture.bind(0);	
+		texture.bind(0);
 	}
 	this.shader.uniform("position", "uniform3fv", [0, this.y, 0]);
 	this.shader.uniform("scale", "uniform3fv", [1, 1, 1]);

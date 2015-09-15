@@ -111,8 +111,14 @@ var encode = function( s ) {
 		var regLat = /.*lat\=\"\-*\d*\.\d*\"/i;
 		var regLng = /.*lon\=\"\-*\d*\.\d*/i;
 		var reqEle = /\d*\.\d*/i;
+		var reqDate = /\d+\-\d+\-\d+/i;
+		var reqTime = /\d+\:\d+\:\d+/g;
 
 		var trackpoints = [];
+		var elevationGain = 0;
+		var lastElevation;
+		var dateStr = "";
+		var startTime, endTime;
 
 		// console.log(results.length, results);
 		for(var i=0; i<results.length; i++) {
@@ -127,6 +133,30 @@ var encode = function( s ) {
 			var eleStr = lines[1].match(reqEle);
 			var elevation = parseFloat(eleStr);
 
+			if(!dateStr) {
+				dateStr = lines[2].match(reqDate)[0];
+				console.log(dateStr);	
+			}
+
+
+			if(i==0) {
+				var timeStr = lines[2].match(reqTime)[0];	
+				startTime = timeStr
+			} else if(i == results.length-1) {
+				var timeStr = lines[2].match(reqTime)[0];	
+				endTime = timeStr
+			}
+
+			
+
+			if(lastElevation !== undefined) {
+				if(elevation > lastElevation) {
+					elevationGain += (elevation - lastElevation);
+				}
+			}
+
+			lastElevation = elevation;
+
 			var o = {
 				lat:lat,
 				lng:lng,
@@ -137,8 +167,80 @@ var encode = function( s ) {
 		}
 
 
-		this.tracks.push(trackpoints);
-		console.log(this.tracks.length);
+		function radians(value) {	return value * Math.PI / 180;	};
+
+		function getDistance(p0, p1) {
+			var R = 6371000; // metres
+			var φ1 = radians(p0.lat);
+			var φ2 = radians(p1.lat);
+
+			var Δφ = radians(p1.lat-p0.lat);
+			var Δλ = radians(p1.lng-p0.lng);
+
+			var a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+			        Math.cos(φ1) * Math.cos(φ2) *
+			        Math.sin(Δλ/2) * Math.sin(Δλ/2);
+
+			var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+			return R * c;
+		}
+
+		var totalDistance = 0;
+		
+		for(var i=0; i<trackpoints.length-1; i++) {
+			var p0 = trackpoints[i];
+			var p1 = trackpoints[i+1];
+			var d = getDistance(p0, p1);
+			totalDistance += d;
+		}
+
+
+		function getDuration(s, e) {
+			var t0 = s.split(":");
+			var t1 = e.split(":");
+
+			var hDiff = parseInt(t1[0]) - parseInt(t0[0]);
+			var mDiff = parseInt(t1[1]) - parseInt(t0[1]);
+			var sDiff = parseInt(t1[2]) - parseInt(t0[2]);
+
+			if(sDiff < 0) {
+				mDiff -= 1;
+				sDiff += 60;
+			}
+
+			if(mDiff < 0) {
+				hDiff -= 1;
+				mDiff += 60;
+			}
+
+			return  {
+				h:hDiff,
+				m:mDiff,
+				s:sDiff
+			}
+		}
+
+		function getSpeed(distance, duration) {
+			var time = duration.m + duration.s / 60;
+			return distance / time;
+		}
+
+		var duration = getDuration(startTime, endTime);
+		// var speed = getSpeed(totalDistance*0.000621371, duration);
+		// console.log('Speed : ', speed);
+
+		var prec = 100;
+		var trackData = {
+			trackpoints:trackpoints,
+			totalDistance:Math.floor(totalDistance*0.000621371*prec) / prec,
+			elevationGain:Math.floor(elevationGain*3.28084*prec) / prec,
+			duration:duration,
+			date:dateStr
+		}
+
+		console.log(trackData);
+
+		this.tracks.push(trackData);
 		this.loadNextRecord();
 	};
 
