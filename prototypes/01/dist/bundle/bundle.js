@@ -92,7 +92,7 @@ var dat = require("dat-gui");
 
 
 new App();
-},{"./SceneApp":5,"./libs/bongiovi.js":9,"dat-gui":2}],2:[function(require,module,exports){
+},{"./SceneApp":6,"./libs/bongiovi.js":10,"dat-gui":2}],2:[function(require,module,exports){
 module.exports = require('./vendor/dat.gui')
 module.exports.color = require('./vendor/dat.color')
 },{"./vendor/dat.color":3,"./vendor/dat.gui":4}],3:[function(require,module,exports){
@@ -4513,6 +4513,78 @@ dat.utils.common),
 dat.dom.dom,
 dat.utils.common);
 },{}],5:[function(require,module,exports){
+// MathUtils.js
+
+MathUtils = {};
+
+MathUtils.random = function(min, max) {	
+	if(!max) {
+		max = min;
+		min = 0;
+	}
+	return Math.random() * (max-min) + min;  
+}
+
+MathUtils.map = function(value, smin, smax, tmin, tmax) {
+	var p = (value - smin) / (smax - smin);
+	return tmin + p * (tmax - tmin);
+}
+
+
+MathUtils.contrast = function(value, center, scale) {
+	return center + (value - center) * scale;
+}
+
+
+MathUtils.clamp = function(value, min, max) {
+	if(value > max) return max;
+	else if ( value < min) return min;
+	else return value;
+}
+
+
+MathUtils.level = function(i) {
+	if(i==0) return 1;
+	else return i*MathUtils.level(i-1);
+}
+
+
+MathUtils.binCoefficient = function(n, i) {
+	return MathUtils.level(n) / ( MathUtils.level(i) * MathUtils.level(n-i) );
+}
+
+
+MathUtils.getBezierPoints = function(points, numSeg) {
+	var bezierPoints = [];
+	numPoints = points.length;
+	var t, tx, ty, tz;
+	var bc, pow1, pow2;
+	for(var i=0; i<numSeg; i++) {
+		t = i/numSeg;	
+
+		tx = ty = tz = 0;
+		for(var j=0; j<points.length; j++) {
+			bc = MathUtils.binCoefficient(numPoints-1, j);
+			pow1 = Math.pow((1-t), numPoints-j-1);
+			pow2 = Math.pow(t, j);
+			tx += bc * pow1 * pow2 * points[j][0];
+			ty += bc * pow1 * pow2 * points[j][1];
+			tz += bc * pow1 * pow2 * points[j][2];
+		}
+
+		// var p = vec3.fromValues(tx, ty, tz);
+		var p = [tx, ty, tz];
+		var index = Math.floor(points.length * t);
+		if(index == points.length) index = points.length-1;
+		p.distance = points[index].distance;
+		bezierPoints.push(p);
+	}
+
+	return bezierPoints;
+}
+
+module.exports = MathUtils;
+},{}],6:[function(require,module,exports){
 // SceneApp.js
 
 var GL = bongiovi.GL, gl;
@@ -4532,12 +4604,17 @@ window.MapModel = {
 
 function SceneApp() {
 	gl = GL.gl;
+	gl.disable(gl.CULL_FACE);
 	bongiovi.Scene.call(this);
 
 	this.sceneRotation.lock(true);
 	this.camera.lockRotation(false);
 	this.camera._rx.value = -.53;
 	this.camera._ry.value = -.3;
+	this.camera.radius.value = 800;
+
+	this._selectedIndex = -1;
+	this.selectTrack(0);
 
 	window.addEventListener("resize", this.resize.bind(this));
 }
@@ -4547,13 +4624,18 @@ var p = SceneApp.prototype = new bongiovi.Scene();
 
 p._initTextures = function() {
 	console.log('Init Textures');
+	var o = {
+		magFilter:gl.NEAREST,
+		minFilter:gl.NEAREST
+	}
 	this._textureHeight = new bongiovi.GLTexture(images.heightMap);
 	var index = Math.floor(Math.random() * 33);
 	this._textureInk = new bongiovi.GLTexture(images["inkDrops" + index]);
 
 	this._brushes = [];
 	for(var i=0; i<=5; i++) {
-
+		var texture = new bongiovi.GLTexture(images["brush"+i], false, o);
+		this._brushes.push(texture);
 	}
 };
 
@@ -4565,6 +4647,41 @@ p._initViews = function() {
 	this._vLines = new ViewHeightLines();
 
 	this._vCalligraphy = new ViewCalligraphy(tracks[0]);
+
+	var container = document.querySelector(".Footer");
+	console.log(container);
+
+	this._calligraphies = [];
+	this._navDots = [];
+	this._navClickBind = this._onNavDot.bind(this);
+	for(var i=0; i<tracks.length; i++) {
+		var v = new ViewCalligraphy(tracks[i], i*20);
+		this._calligraphies.push(v);
+
+		var div = document.createElement("div");
+		div.className = 'Footer-navigationDot';
+		div.trackIndex = i;
+		div.addEventListener("click", this._navClickBind);
+		this._navDots.push(div);
+
+		container.appendChild(div);
+	}
+};
+
+
+p._onNavDot = function(e) {
+	console.log('On Nav Dot : ', e.target.trackIndex);
+	this.selectTrack(e.target.trackIndex);
+};
+
+p.selectTrack = function(index) {
+	if(this._selectedIndex === index) return;
+	for(var i=0; i<this._navDots.length; i++) {
+		this._navDots[i].classList.toggle('is-selected', index == i);
+	}
+
+	this._selectedIndex = index;
+
 };
 
 p.render = function() {
@@ -4574,7 +4691,13 @@ p.render = function() {
 	this._vLines.render();
 
 	this._vTerrain.render(this._textureHeight, this._textureInk);
-	this._vCalligraphy.render();
+	// this._vCalligraphy.render(this._brushes[this._vCalligraphy.textureIndex]);
+	for(var i=0; i<this._calligraphies.length; i++) {
+		var v = this._calligraphies[i];
+	 	if(i === this._selectedIndex) {
+	 		v.render(this._brushes[v.textureIndex]);	
+	 	}
+	}
 };
 
 p.resize = function() {
@@ -4583,64 +4706,187 @@ p.resize = function() {
 };
 
 module.exports = SceneApp;
-},{"./ViewCalligraphy":6,"./ViewHeightLines":7,"./ViewTerrain":8}],6:[function(require,module,exports){
+},{"./ViewCalligraphy":7,"./ViewHeightLines":8,"./ViewTerrain":9}],7:[function(require,module,exports){
 // ViewCalligraphy.js
 
 var GL = bongiovi.GL;
 var gl;
+var glm;
 var W = 660;
 var H = 428;
+
+var MathUtils = require("./MathUtils");
 
 function map(value, sx, sy, tx, ty) {
 	var p = (value - sx) / (sy - sx);
 	return tx + (ty - tx) * p;
 };
 
+function getDist(a, b) {
+	return Math.sqrt( (b[0] - a[0])*(b[0] - a[0]) + (b[1] - a[1])*(b[1] - a[1]) + (b[2] - a[2])*(b[2] - a[2]) );
+};
 
-function ViewCalligraphy(points) {
-	// console.log(points);
-	this._points = points;
-	bongiovi.View.call(this, null, bongiovi.ShaderLibs.get("simpleColorFrag"));
+function getPoint(p) {
+	if(glm === undefined) glm = bongiovi.glm;
+	var v = glm.vec3.create();
+	v[0] = map(p.lng, MapModel.TL.lng, MapModel.BR.lng, -W/2, W/2);
+	v[2] = map(p.lat, MapModel.TL.lat, MapModel.BR.lat, -H/2, H/2);
+	v[1] = p.elevation + 20;
+
+	return v;
+};
+
+function ViewCalligraphy(points, y) {
+	this.y = y === undefined ? 0 : y;
+	this.textureIndex = Math.floor(Math.random() * 6);
+	this._points = this._simplifyPoints(points);
+	// console.log(points.length, '->', this._points.length, 'Texture : ', this.textureIndex);
+
+	// bongiovi.View.call(this, null, bbongiovi.ShaderLibs.get("simpleColorFrag"));
+	bongiovi.View.call(this, bongiovi.ShaderLibs.get("generalVert"));
 }
 
 var p = ViewCalligraphy.prototype = new bongiovi.View();
 p.constructor = ViewCalligraphy;
 
 
+p._simplifyPoints = function(points) {
+	var newPoints = [];
+	var lastPoint;
+	var minDistance = 30;
+
+	for(var i=0; i<points.length; i++) {
+		var p = getPoint(points[i]);
+		if(lastPoint === undefined) {
+			newPoints.push(p);
+			lastPoint = p;
+		} else {
+			var distance = getDist(lastPoint, p);
+			// console.log(distance);
+			if(distance > minDistance) {
+				newPoints.push(p);
+				lastPoint = p;
+			}
+		}
+	}
+
+	return newPoints;
+};
+
+
 p._init = function() {
 	gl = GL.gl;
+	this._particles = MathUtils.getBezierPoints(this._points, this._points.length*2);
+
+	var dir = glm.vec3.create();
+	var z = glm.vec3.fromValues(0, 1, 0);
+	var mtxLeft = glm.mat4.create();
+	var mtxRight = glm.mat4.create();
+	var strokeSize = 10;
+	
+	glm.mat4.identity(mtxLeft);
+	glm.mat4.identity(mtxRight);
+	glm.mat4.rotateY(mtxLeft, mtxLeft, -Math.PI/2);
+	glm.mat4.rotateY(mtxRight, mtxRight, Math.PI/2);
+	this._quads = [];
+	this._normals = [];
+
+	for (var i = 0; i < this._particles.length; i++) {
+		var size = strokeSize + strokeSize * (Perlin.noise(i*.1, 0, 0) - .5);
+		var left = glm.vec3.create();
+		var right = glm.vec3.create();
+		var normal = glm.vec3.create();
+
+		var p = this._particles[i];
+		if(i<this._particles.length-1) {
+			var pNext = this._particles[i+1];	
+			glm.vec3.subtract(dir, pNext, p);
+		}
+
+		glm.vec3.normalize(dir, dir);
+
+		glm.vec3.cross(left, dir, z);
+		glm.vec3.scale(left, left, size);
+		glm.vec3.scale(right, left, -1);
+
+		glm.vec3.cross(normal, left, dir);
+		glm.vec3.normalize(normal, normal);
+
+		
+		glm.vec3.add(left, left, p);
+		glm.vec3.add(right, right, p);
+
+		this._quads.push([left, right, p]);
+		this._normals.push(normal);
+	};
+
+
+
 	var positions = [];
 	var coords = [];
-	var indices = []; 
+	var indices = [];
+
+	var p0, p1, p2, p3;
+	var s = 1/(this._quads.length-1);
+	var vOffset = 1;
 	var index = 0;
 
+	for(var i=0; i<this._quads.length-1; i++) {
+		var curr = this._quads[i];
+		var next = this._quads[i+1];
+		var norm0 = this._normals[i];
+		var norm1 = this._normals[i+1];
 
-	function getPoint(p) {
-		var v = [0, 0, 0];
-		v[0] = map(p.lng, MapModel.TL.lng, MapModel.BR.lng, -W/2, W/2);
-		v[2] = map(p.lat, MapModel.TL.lat, MapModel.BR.lat, -H/2, H/2);
-		v[1] = p.elevation + 20;
+		p0 = curr[2];
+		p1 = next[2];
+		p2 = next[0];
+		p3 = curr[0];
 
-		return v;
+		positions.push([ p0[0], p0[1], p0[2] ]);
+		positions.push([ p1[0], p1[1], p1[2] ]);
+		positions.push([ p2[0], p2[1], p2[2] ]);
+		positions.push([ p3[0], p3[1], p3[2] ]);
+
+		coords.push([s*i, .5]);
+		coords.push([s*(i+1), .5]);
+		coords.push([s*(i+1), 1]);
+		coords.push([s*i, 1]);
+
+		indices.push(index*4 + 0);
+		indices.push(index*4 + 1);
+		indices.push(index*4 + 2);
+		indices.push(index*4 + 0);
+		indices.push(index*4 + 2);
+		indices.push(index*4 + 3);
+
+		index++;
+
+		p0 = curr[1];
+		p1 = next[1];
+		p2 = next[2];
+		p3 = curr[2];
+
+		positions.push([ p0[0], p0[1], p0[2] ]);
+		positions.push([ p1[0], p1[1], p1[2] ]);
+		positions.push([ p2[0], p2[1], p2[2] ]);
+		positions.push([ p3[0], p3[1], p3[2] ]);
+
+		coords.push([s*i, .0]);
+		coords.push([s*(i+1), 0]);
+		coords.push([s*(i+1), .5]);
+		coords.push([s*i, .5]);
+
+		indices.push(index*4 + 0);
+		indices.push(index*4 + 1);
+		indices.push(index*4 + 2);
+		indices.push(index*4 + 0);
+		indices.push(index*4 + 2);
+		indices.push(index*4 + 3);
+
+		index++;
 	}
 
-	for(var i=0; i<this._points.length-1; i++) {
-		var p0 = getPoint(this._points[i]);
-		var p1 = getPoint(this._points[i+1]);
-
-		positions.push(p0);
-		positions.push(p1);
-
-		coords.push([0, 0]);
-		coords.push([0, 0]);
-
-		indices.push(index);
-		indices.push(index+1);
-
-		index += 2;
-	}
-
-	this.mesh = new bongiovi.Mesh(positions.length, indices.length, GL.gl.LINES);
+	this.mesh = new bongiovi.Mesh(positions.length, indices.length, GL.gl.TRIANGLES);
 	this.mesh.bufferVertex(positions);
 	this.mesh.bufferTexCoords(coords);
 	this.mesh.bufferIndices(indices);
@@ -4654,13 +4900,13 @@ p.render = function(texture) {
 		this.shader.uniform("texture", "uniform1i", 0);
 		texture.bind(0);	
 	}
-	this.shader.uniform("color", "uniform3fv", [1, 0, 0]);
-	this.shader.uniform("opacity", "uniform1f", 1);
+	this.shader.uniform("position", "uniform3fv", [0, this.y, 0]);
+	this.shader.uniform("scale", "uniform3fv", [1, 1, 1]);
 	GL.draw(this.mesh);
 };
 
 module.exports = ViewCalligraphy;
-},{}],7:[function(require,module,exports){
+},{"./MathUtils":5}],8:[function(require,module,exports){
 // ViewHeightLines.js
 
 var GL = bongiovi.GL;
@@ -4740,14 +4986,14 @@ p.render = function() {
 };
 
 module.exports = ViewHeightLines;
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // ViewTerrain.js
 var GL = bongiovi.GL;
 var gl;
 
 
 function ViewTerrain() {
-	bongiovi.View.call(this, "#define GLSLIFY 1\n\n#define SHADER_NAME BASIC_VERTEX\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\n\nvarying vec2 vTextureCoord;\nvarying vec4 vColor;\nvarying vec3 vNormal;\nvarying vec3 vVertexPosition;\n\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvec2 contrast(vec2 mValue, float mScale, float mMidPoint) {\n\treturn vec2( contrast(mValue.r, mScale, mMidPoint), contrast(mValue.g, mScale, mMidPoint));\n}\n\nvec2 contrast(vec2 mValue, float mScale) {\n\treturn contrast(mValue, mScale, .5);\n}\n\nvec3 getPos(vec2 uv) {\n\tvec2 newUv = contrast(uv, .995);\n\tfloat h = texture2D(texture, newUv).r;\n\tvec3 v;\n\n\tv.x = -W*.5 + W * newUv.x;\n\tv.z = H*.5 - H * newUv.y;\n\n\tv.y = h * 300.0 - 50.0;\n\treturn v;\n}\n\n\nconst float gap = .01;\n\nvoid main(void) {\n\tvec4 colorHeight = texture2D(texture, aTextureCoord);\n\tvec3 pos = aVertexPosition;\n\tpos = getPos(aTextureCoord);\n\n\tvec2 uvRight = aTextureCoord+vec2(gap, 0.0);\n\tvec2 uvBottom = aTextureCoord+vec2(0.0, gap);\n\t\n\tvec3 posRight = getPos(uvRight);\n\tvec3 posBottom = getPos(uvBottom);\n\n\tvec3 vRight = posRight - pos;\n\tvec3 vBottom = posBottom - pos;\n\n    gl_Position = uPMatrix * uMVMatrix * vec4(pos, 1.0);\n    vTextureCoord = aTextureCoord;\n\n    vColor = colorHeight;\n    vNormal = normalize(cross(vRight, vBottom));\n    if(uvRight.x >= 1.0 || uvBottom.y >= 1.0) {\n    \tvNormal = vec3(0.0, 1.0, 0.0);\n    }\n    vVertexPosition = pos;\n}", "#define GLSLIFY 1\n\n#define SHADER_NAME SIMPLE_TEXTURE\n\nprecision highp float;\nvarying vec4 vColor;\n\nvarying vec2 vTextureCoord;\nuniform sampler2D textureInk;\nvarying vec3 vNormal;\n\n\nconst vec3 DIRECTIONAL_LIGHT_COLOR \t\t= vec3(1.0);\nconst vec3 AMBIENT_LIGHT_COLOR \t\t\t= vec3(.4);\nconst float DIRECTIONAL_LIGHT_WEIGHT \t= 1.0;\nconst vec3 DIRECTIONAL_LIGHT_POS \t\t= vec3(.5, 0.3, 1.0);\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nvoid main(void) {\n\tvec4 color = texture2D(textureInk, vTextureCoord);\n\tcolor.rgb *= 1.25;\n\t// color.rgb = vec3(1.0, 1.0, .92);\n\tvec3 ambient = AMBIENT_LIGHT_COLOR;\n\tfloat lamberFactor = max(0.0, dot(vNormal, normalize(DIRECTIONAL_LIGHT_POS)));\n\tvec3 directional = DIRECTIONAL_LIGHT_COLOR * lamberFactor * DIRECTIONAL_LIGHT_WEIGHT;\n\n\t// color.rgb = ambient + color.rgb * directional;\n\tcolor.rgb = color.rgb * (ambient + directional);\n\tgl_FragColor = color;\n}");
+	bongiovi.View.call(this, "#define GLSLIFY 1\n\n#define SHADER_NAME BASIC_VERTEX\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\n\nvarying vec2 vTextureCoord;\nvarying vec4 vColor;\nvarying vec3 vNormal;\nvarying vec3 vVertexPosition;\n\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvec2 contrast(vec2 mValue, float mScale, float mMidPoint) {\n\treturn vec2( contrast(mValue.r, mScale, mMidPoint), contrast(mValue.g, mScale, mMidPoint));\n}\n\nvec2 contrast(vec2 mValue, float mScale) {\n\treturn contrast(mValue, mScale, .5);\n}\n\nvec3 getPos(vec2 uv) {\n\tvec2 newUv = contrast(uv, .995);\n\tfloat h = texture2D(texture, newUv).r;\n\tvec3 v;\n\n\tv.x = -W*.5 + W * newUv.x;\n\tv.z = H*.5 - H * newUv.y;\n\n\tv.y = h * 300.0 - 50.0;\n\treturn v;\n}\n\n\nconst float gap = .01;\n\nvoid main(void) {\n\tvec4 colorHeight = texture2D(texture, aTextureCoord);\n\tvec3 pos = aVertexPosition;\n\tpos = getPos(aTextureCoord);\n\n\tvec2 uvRight = aTextureCoord+vec2(gap, 0.0);\n\tvec2 uvBottom = aTextureCoord+vec2(0.0, gap);\n\t\n\tvec3 posRight = getPos(uvRight);\n\tvec3 posBottom = getPos(uvBottom);\n\n\tvec3 vRight = posRight - pos;\n\tvec3 vBottom = posBottom - pos;\n\n    gl_Position = uPMatrix * uMVMatrix * vec4(pos, 1.0);\n    vTextureCoord = aTextureCoord;\n\n    vColor = colorHeight;\n    vNormal = normalize(cross(vRight, vBottom));\n    if(uvRight.x >= 1.0 || uvBottom.y >= 1.0) {\n    \tvNormal = vec3(0.0, 1.0, 0.0);\n    }\n    vVertexPosition = pos;\n}", "#define GLSLIFY 1\n\n#define SHADER_NAME SIMPLE_TEXTURE\n\nprecision highp float;\nvarying vec4 vColor;\n\nvarying vec2 vTextureCoord;\nuniform sampler2D textureInk;\nvarying vec3 vNormal;\n\n\nconst vec3 DIRECTIONAL_LIGHT_COLOR \t\t= vec3(1.0);\nconst vec3 AMBIENT_LIGHT_COLOR \t\t\t= vec3(.4);\nconst float DIRECTIONAL_LIGHT_WEIGHT \t= 1.0;\nconst vec3 DIRECTIONAL_LIGHT_POS \t\t= vec3(.5, 0.3, 1.0);\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nvoid main(void) {\n\tvec4 color = texture2D(textureInk, vTextureCoord);\n\tfloat grey = (color.r + color.g + color.b) / 3.0;\n\tcolor.rgb = mix(color.rgb, vec3(grey), .45);\n\tcolor.rgb *= 1.5;\n\t// color.rgb = vec3(1.0, 1.0, .92);\n\tvec3 ambient = AMBIENT_LIGHT_COLOR;\n\tfloat lamberFactor = max(0.0, dot(vNormal, normalize(DIRECTIONAL_LIGHT_POS)));\n\tvec3 directional = DIRECTIONAL_LIGHT_COLOR * lamberFactor * DIRECTIONAL_LIGHT_WEIGHT;\n\n\t// color.rgb = ambient + color.rgb * directional;\n\tcolor.rgb = color.rgb * (ambient + directional);\n\tgl_FragColor = color;\n}");
 }
 
 var p = ViewTerrain.prototype = new bongiovi.View();
@@ -4815,7 +5061,7 @@ p.render = function(texture, textureInk) {
 };
 
 module.exports = ViewTerrain;
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function (global){
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.bongiovi = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 "use strict";

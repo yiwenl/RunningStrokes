@@ -20,7 +20,9 @@ float map(float value, float sx, float sy, float tx, float ty) {
 
 void main(void) {
 	vec4 color = texture2D(textureInk, vTextureCoord);
-	color.rgb *= 1.25;
+	float grey = (color.r + color.g + color.b) / 3.0;
+	color.rgb = mix(color.rgb, vec3(grey), .45);
+	color.rgb *= 1.5;
 	// color.rgb = vec3(1.0, 1.0, .92);
 	vec3 ambient = AMBIENT_LIGHT_COLOR;
 	float lamberFactor = max(0.0, dot(vNormal, normalize(DIRECTIONAL_LIGHT_POS)));

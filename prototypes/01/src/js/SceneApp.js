@@ -17,12 +17,17 @@ window.MapModel = {
 
 function SceneApp() {
 	gl = GL.gl;
+	gl.disable(gl.CULL_FACE);
 	bongiovi.Scene.call(this);
 
 	this.sceneRotation.lock(true);
 	this.camera.lockRotation(false);
 	this.camera._rx.value = -.53;
 	this.camera._ry.value = -.3;
+	this.camera.radius.value = 800;
+
+	this._selectedIndex = -1;
+	this.selectTrack(0);
 
 	window.addEventListener("resize", this.resize.bind(this));
 }
@@ -32,13 +37,18 @@ var p = SceneApp.prototype = new bongiovi.Scene();
 
 p._initTextures = function() {
 	console.log('Init Textures');
+	var o = {
+		magFilter:gl.NEAREST,
+		minFilter:gl.NEAREST
+	}
 	this._textureHeight = new bongiovi.GLTexture(images.heightMap);
 	var index = Math.floor(Math.random() * 33);
 	this._textureInk = new bongiovi.GLTexture(images["inkDrops" + index]);
 
 	this._brushes = [];
 	for(var i=0; i<=5; i++) {
-
+		var texture = new bongiovi.GLTexture(images["brush"+i], false, o);
+		this._brushes.push(texture);
 	}
 };
 
@@ -50,6 +60,40 @@ p._initViews = function() {
 	this._vLines = new ViewHeightLines();
 
 	this._vCalligraphy = new ViewCalligraphy(tracks[0]);
+
+	var container = document.querySelector(".Footer");
+	console.log(container);
+
+	this._calligraphies = [];
+	this._navDots = [];
+	this._navClickBind = this._onNavDot.bind(this);
+	for(var i=0; i<tracks.length; i++) {
+		var v = new ViewCalligraphy(tracks[i], i*20);
+		this._calligraphies.push(v);
+
+		var div = document.createElement("div");
+		div.className = 'Footer-navigationDot';
+		div.trackIndex = i;
+		div.addEventListener("click", this._navClickBind);
+		this._navDots.push(div);
+
+		container.appendChild(div);
+	}
+};
+
+
+p._onNavDot = function(e) {
+	this.selectTrack(e.target.trackIndex);
+};
+
+p.selectTrack = function(index) {
+	if(this._selectedIndex === index) return;
+	for(var i=0; i<this._navDots.length; i++) {
+		this._navDots[i].classList.toggle('is-selected', index == i);
+	}
+
+	this._selectedIndex = index;
+
 };
 
 p.render = function() {
@@ -59,7 +103,13 @@ p.render = function() {
 	this._vLines.render();
 
 	this._vTerrain.render(this._textureHeight, this._textureInk);
-	this._vCalligraphy.render();
+	// this._vCalligraphy.render(this._brushes[this._vCalligraphy.textureIndex]);
+	for(var i=0; i<this._calligraphies.length; i++) {
+		var v = this._calligraphies[i];
+	 	if(i === this._selectedIndex) {
+	 		v.render(this._brushes[v.textureIndex]);	
+	 	}
+	}
 };
 
 p.resize = function() {
