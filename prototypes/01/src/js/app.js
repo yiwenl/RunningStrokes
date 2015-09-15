@@ -3,7 +3,7 @@ window.bongiovi = require("./libs/bongiovi.js");
 var dat = require("dat-gui");
 
 window.params = {
-	gradientOffset:.25,
+	gradientOffset:.32,
 	noiseOffset:.4
 };
 
@@ -55,9 +55,9 @@ window.params = {
 		bongiovi.Scheduler.addEF(this, this._loop);
 
 		// return;
-		this.gui = new dat.GUI({width:300});
-		this.gui.add(params, "gradientOffset", 0, 1);
-		this.gui.add(params, "noiseOffset", 0, 1);
+		// this.gui = new dat.GUI({width:300});
+		// this.gui.add(params, "gradientOffset", 0, 1);
+		// this.gui.add(params, "noiseOffset", 0, 1);
 
 		// this.findRegion();
 	};

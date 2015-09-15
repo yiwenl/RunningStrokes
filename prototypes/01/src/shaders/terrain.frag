@@ -13,7 +13,7 @@ uniform float noiseOffset;
 varying float vDepth;
 
 const vec3 DIRECTIONAL_LIGHT_COLOR 		= vec3(1.0);
-const vec3 AMBIENT_LIGHT_COLOR 			= vec3(.3);
+const vec3 AMBIENT_LIGHT_COLOR 			= vec3(.4);
 const float DIRECTIONAL_LIGHT_WEIGHT 	= 1.0;
 const vec3 DIRECTIONAL_LIGHT_POS 		= vec3(.5, 0.3, 1.0);
 
@@ -29,7 +29,7 @@ void main(void) {
 	vec4 color         = texture2D(textureInk, vTextureCoord);
 	vec2 uvNoise       = vTextureCoord * 5.0;
 	float grey         = (color.r + color.g + color.b) / 3.0;
-	color.rgb          = mix(color.rgb, vec3(grey), .45);
+	color.rgb          = mix(color.rgb, vec3(grey), .35);
 	color.rgb          *= 1.5;
 	vec3 ambient       = AMBIENT_LIGHT_COLOR;
 	vec3 bump 		   = texture2D(textureNoise, uvNoise).rgb - vec3(.5);

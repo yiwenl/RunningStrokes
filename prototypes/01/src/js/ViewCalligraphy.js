@@ -23,7 +23,7 @@ function getPoint(p) {
 	var v = glm.vec3.create();
 	v[0] = map(p.lng, MapModel.TL.lng, MapModel.BR.lng, -W/2, W/2);
 	v[2] = map(p.lat, MapModel.TL.lat, MapModel.BR.lat, -H/2, H/2);
-	v[1] = p.elevation + 20;
+	v[1] = p.elevation;
 
 	return v;
 };
@@ -35,8 +35,6 @@ function ViewCalligraphy(points, y) {
 	this.opacity = new bongiovi.EaseNumber(1);
 	this.progress = new bongiovi.EaseNumber(0, .025);
 
-
-	// bongiovi.View.call(this, bongiovi.ShaderLibs.get("generalVert"), glslify("../shaders/calligraphy.frag"));
 	bongiovi.View.call(this, glslify("../shaders/calligraphy.vert"), glslify("../shaders/calligraphy.frag"));
 }
 
@@ -75,7 +73,8 @@ p.select = function() {
 
 p.unSelect = function() {
 	this.opacity.value = 0;	
-	this.progress.setTo(0);
+	this.progress.value = 0;
+	// this.progress.setTo(0);
 };
 
 
@@ -133,7 +132,7 @@ p._init = function() {
 
 	var p0, p1, p2, p3;
 	var s = 1/(this._quads.length-1);
-	var vOffset = 1;
+	var yOffset = 1.5;
 	var index = 0;
 
 	for(var i=0; i<this._quads.length-1; i++) {
@@ -147,10 +146,10 @@ p._init = function() {
 		p2 = next[0];
 		p3 = curr[0];
 
-		positions.push([ p0[0], p0[1], p0[2] ]);
-		positions.push([ p1[0], p1[1], p1[2] ]);
-		positions.push([ p2[0], p2[1], p2[2] ]);
-		positions.push([ p3[0], p3[1], p3[2] ]);
+		positions.push([ p0[0], p0[1]*yOffset, p0[2] ]);
+		positions.push([ p1[0], p1[1]*yOffset, p1[2] ]);
+		positions.push([ p2[0], p2[1]*yOffset, p2[2] ]);
+		positions.push([ p3[0], p3[1]*yOffset, p3[2] ]);
 
 		coords.push([s*i, .5]);
 		coords.push([s*(i+1), .5]);
@@ -171,10 +170,10 @@ p._init = function() {
 		p2 = next[2];
 		p3 = curr[2];
 
-		positions.push([ p0[0], p0[1], p0[2] ]);
-		positions.push([ p1[0], p1[1], p1[2] ]);
-		positions.push([ p2[0], p2[1], p2[2] ]);
-		positions.push([ p3[0], p3[1], p3[2] ]);
+		positions.push([ p0[0], p0[1]*yOffset, p0[2] ]);
+		positions.push([ p1[0], p1[1]*yOffset, p1[2] ]);
+		positions.push([ p2[0], p2[1]*yOffset, p2[2] ]);
+		positions.push([ p3[0], p3[1]*yOffset, p3[2] ]);
 
 		coords.push([s*i, .0]);
 		coords.push([s*(i+1), 0]);
@@ -197,7 +196,7 @@ p._init = function() {
 	this.mesh.bufferIndices(indices);
 };
 
-p.render = function(texture) {
+p.render = function(texture, y) {
 	if(!this.shader.isReady() ) return;
 
 	this.shader.bind();
@@ -205,7 +204,7 @@ p.render = function(texture) {
 		this.shader.uniform("texture", "uniform1i", 0);
 		texture.bind(0);
 	}
-	this.shader.uniform("position", "uniform3fv", [0, this.y, 0]);
+	this.shader.uniform("position", "uniform3fv", [0, y === undefined ? this.y : y, 0]);
 	this.shader.uniform("scale", "uniform3fv", [1, 1, 1]);
 	this.shader.uniform("opacity", "uniform1f", this.opacity.value);
 	this.shader.uniform("progress", "uniform1f", this.progress.value);

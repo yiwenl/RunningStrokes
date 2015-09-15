@@ -25,8 +25,10 @@ function SceneApp() {
 	this.sceneRotation.lock(true);
 	this.camera.lockRotation(false);
 	this.camera._rx.value = -.53;
+	// this.camera._rx.value = -Math.PI/2;
 	this.camera._rx.limit(-Math.PI/2, 0);
 	this.camera._ry.value = -.3;
+	// this.camera._ry.value = -Math.PI/2;
 	this.camera.radius.value = 800;
 	this.camera.radius._easing = .025;
 
@@ -40,7 +42,7 @@ function SceneApp() {
 	this.pDuration  = document.querySelector('.Stats-entry--duration');
 
 	this._selectedIndex = -1;
-	this.selectTrack(0);
+	this.selectTrack(Math.floor(Math.random() * tracks.length));
 
 	// bongiovi.Scheduler.addEF(this, this.selectNext, null, 1000);
 	var that = this;
@@ -54,6 +56,17 @@ function SceneApp() {
 
 	window.addEventListener("mouseup", function() {
 		that.camera.radius.value = 800;
+	});
+
+	window.addEventListener("keydown", function(e) {
+		// console.log(e.keyCode);
+		if(e.keyCode == 37) {
+			that.selectPrev();
+		} else if(e.keyCode == 39) {
+			that.selectNext();
+		} else if(e.keyCode == 65) {
+			that.selectTrack(-1);
+		}
 	});
 
 	window.addEventListener("resize", this.resize.bind(this));
@@ -99,7 +112,7 @@ p._initViews = function() {
 	this._navDots = [];
 	this._navClickBind = this._onNavDot.bind(this);
 	for(var i=0; i<tracks.length; i++) {
-		var v = new ViewCalligraphy(tracks[i].trackpoints, i*0);
+		var v = new ViewCalligraphy(tracks[i].trackpoints, i*20);
 		this._calligraphies.push(v);
 
 		var div = document.createElement("div");
@@ -119,37 +132,58 @@ p._onNavDot = function(e) {
 
 
 p.selectNext = function() {
-	if(this._selectedIndex < 0) return;
-	// console.log('Select next', this._selectedIndex, this);
+	if(this._selectedIndex < 0) {
+		this.selectTrack(0);
+		return;
+	}
 	var newIndex = this._selectedIndex + 1;
 	if(newIndex == tracks.length) newIndex = 0;
 	this.selectTrack(newIndex);
 };
 
+p.selectPrev = function() {
+	if(this._selectedIndex < 0) {
+		this.selectTrack(0);
+		return;
+	}
+	var newIndex = this._selectedIndex - 1;
+	if(newIndex <0) newIndex = tracks.length-1;
+	this.selectTrack(newIndex);	
+};
+
 p.selectTrack = function(index) {
-	// console.log('Select Track :', index, this._selectedIndex);
 	if(this._selectedIndex === index) return;
 	for(var i=0; i<this._navDots.length; i++) {
 		this._navDots[i].classList.toggle('is-selected', index == i);
 	}
 
 	this._selectedIndex = index;
-	var data = tracks[this._selectedIndex];
-	var pDate = document.querySelector('.Stats-entry--date');
-	pDate.innerHTML = data.date;
 
-	this.elevation.value = data.elevationGain;
-	this.distance.value = data.totalDistance;
-	this.minute.value = data.duration.m;
-	this.seconds.value = data.duration.s;
+	if(this._selectedIndex >=0 ) {
+		var data = tracks[this._selectedIndex];
+		var pDate = document.querySelector('.Stats-entry--date');
+		pDate.innerHTML = data.date;
+
+		this.elevation.value = data.elevationGain;
+		this.distance.value = data.totalDistance;
+		this.minute.value = data.duration.m;
+		this.seconds.value = data.duration.s;	
+	}
+	
 
 	for(var i=0; i<this._calligraphies.length; i++) {
 		var v = this._calligraphies[i];
-	 	if(i === this._selectedIndex) {
-	 		v.select();
-	 	} else {
-	 		v.unSelect();
-	 	}
+		if(this._selectedIndex >= 0) {
+			if(i === this._selectedIndex) {
+				v.select();
+			} else {
+				v.unSelect();
+			}	
+		} else {
+			console.log('Select all');
+			v.select();
+		}
+	 	
 	}
 };
 
@@ -167,9 +201,14 @@ p.render = function() {
 	
 	for(var i=0; i<this._calligraphies.length; i++) {
 		var v = this._calligraphies[i];
-	 	if(i === this._selectedIndex) {
-	 		v.render(this._brushes[v.textureIndex]);	
-	 	}
+		if(this._selectedIndex == -1) {
+			v.render(this._brushes[v.textureIndex]);	
+		} else {
+			if(i === this._selectedIndex) {
+				v.render(this._brushes[v.textureIndex], 0);	
+			}	
+		}
+	 	
 	}
 	this.fboRender.unbind();
 
