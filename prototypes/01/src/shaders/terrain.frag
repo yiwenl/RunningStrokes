@@ -22,10 +22,12 @@ float map(float value, float sx, float sy, float tx, float ty) {
 	return tx + p * ( ty - tx);
 }
 
-const float MAX_BRIGHTNESS = length(vec3(1.0));
+
 const vec3 background_color = vec3(1.0, 1.0, 250.0/255.0);
 
 void main(void) {
+	float MAX_BRIGHTNESS = length(vec3(1.0));
+	
 	vec4 color         = texture2D(textureInk, vTextureCoord);
 	vec2 uvNoise       = vTextureCoord * 5.0;
 	float grey         = (color.r + color.g + color.b) / 3.0;
@@ -44,7 +46,8 @@ void main(void) {
 	vec2 uvMap      = vec2(p, .5);
 	
 	color.rgb       = mix(color.rgb, texture2D(textureGradient, uvMap).rgb, gradientOffset);
-	color.rgb		= mix(background_color, color.rgb, vDepth);
+	// color.rgb		= mix(background_color, color.rgb - vec3((1.0-vDepth)*.95), vDepth);
+	color.rgb		= mix(background_color, color.rgb - vec3(vDepth*.05), vDepth);
 	// color.a 		*= vDepth;
 
 	gl_FragColor = color;

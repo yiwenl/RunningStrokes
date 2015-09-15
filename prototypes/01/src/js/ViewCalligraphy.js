@@ -80,7 +80,7 @@ p.unSelect = function() {
 
 p._init = function() {
 	gl = GL.gl;
-	this._particles = MathUtils.getBezierPoints(this._points, this._points.length*3);
+	this._particles = MathUtils.getBezierPoints(this._points, this._points.length*4);
 
 	var dir = glm.vec3.create();
 	var z = glm.vec3.fromValues(0, 1, 0);

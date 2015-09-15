@@ -17,7 +17,7 @@ p._init = function() {
 	var coords = [];
 	var indices = []; 
 	var index = 0;
-	var num = 20;
+	var num = 40;
 	var W = 660;
 	var H = 428;
 	var scale = 1.0;
@@ -58,7 +58,7 @@ p._init = function() {
 	this.mesh.bufferIndices(indices);
 };
 
-p.render = function(texture, textureInk, textureGradient, textureNoise) {
+p.render = function(texture, textureInk, textureGradient, textureNoise, textureDetail) {
 	if(!this.shader.isReady() ) return;
 
 	this.shader.bind();
@@ -70,6 +70,8 @@ p.render = function(texture, textureInk, textureGradient, textureNoise) {
 	textureGradient.bind(2);
 	this.shader.uniform("textureNoise", "uniform1i", 3);
 	textureNoise.bind(3);
+	this.shader.uniform("textureDetail", "uniform1i", 4);
+	textureDetail.bind(4);
 	this.shader.uniform("gradientOffset", "uniform1f", params.gradientOffset);
 	this.shader.uniform("noiseOffset", "uniform1f", params.noiseOffset);
 	GL.draw(this.mesh);

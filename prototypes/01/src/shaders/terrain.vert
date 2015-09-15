@@ -1,4 +1,4 @@
-#define SHADER_NAME BASIC_VERTEX
+#define SHADER_NAME VERTEX_TERRAIN
 
 precision highp float;
 attribute vec3 aVertexPosition;
@@ -7,6 +7,7 @@ attribute vec2 aTextureCoord;
 uniform mat4 uMVMatrix;
 uniform mat4 uPMatrix;
 uniform sampler2D texture;
+uniform sampler2D textureDetail;
 
 varying vec2 vTextureCoord;
 varying vec4 vColor;
@@ -48,7 +49,10 @@ vec2 contrast(vec2 mValue, float mScale) {
 
 vec3 getPos(vec2 uv) {
 	vec2 newUv = contrast(uv, .995);
+	vec2 uvDetail = newUv * 3.0;
 	float h = texture2D(texture, newUv).r;
+	float hDetail = texture2D(textureDetail, uvDetail).r * .005;
+	h += hDetail;
 	vec3 v;
 
 	v.x = -W*.5 + W * newUv.x;
@@ -80,7 +84,8 @@ void main(void) {
 	vec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));
     gl_Position = V;
 
-    vDepth = mix(contrast(1.0-getDepth(V.z/V.w, 5.0, 800.0), 4.0, .375), 1.0, .75);
+    // vDepth = mix(contrast(1.0-getDepth(V.z/V.w, 5.0, 760.0), 3.0, .375), 1.0, .95);
+    vDepth = contrast(1.0-getDepth(V.z/V.w, 5.0, 760.0), 3.5, .325);
 
     vTextureCoord = aTextureCoord;
 
