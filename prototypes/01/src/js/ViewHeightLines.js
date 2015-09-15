@@ -33,7 +33,7 @@ p._init = function() {
 				p1 = line[0];
 				var dist = getDist(p0, p1)
 				
-				if(dist > 400) {
+				if(dist > 250) {
 					continue;
 				}
 			}

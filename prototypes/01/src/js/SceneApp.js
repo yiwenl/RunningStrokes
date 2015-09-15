@@ -204,9 +204,9 @@ p.render = function() {
 
 	GL.clear(1, 1, .986, 1);
 	gl.enable(gl.CULL_FACE);
-	this._vDotPlane.render();
-	this._vLines.render();
-	this._vTerrain.render(this._textureHeight, this._textureInk, this._textureGradient, this._textureNoise, this._textureDetail);
+	if(params.renderDots) this._vDotPlane.render();
+	if(params.renderHeightLines) this._vLines.render();
+	if(params.renderTerrain) this._vTerrain.render(this._textureHeight, this._textureInk, this._textureGradient, this._textureNoise, this._textureDetail);
 	gl.disable(gl.CULL_FACE);
 
 	this.fboRender.bind();
@@ -244,7 +244,7 @@ p.render = function() {
 	this.fboBlur1.unbind();
 	*/
 
-	this._vPost.render(this.fboRender.getTexture(), this._textureVideo, this._textureGradient);	
+	if(params.renderStroke)	this._vPost.render(this.fboRender.getTexture(), this._textureVideo, this._textureGradient);	
 	// this._vCopy.render(this.fboBlur1.getTexture());
 
 	function getPrec(value) {
