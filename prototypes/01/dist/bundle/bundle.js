@@ -4620,7 +4620,7 @@ function SceneApp() {
 	this.camera._rx.limit(-Math.PI/2, 0);
 	this.camera._ry.value = -.3;
 	// this.camera._ry.value = -Math.PI/2;
-	this.camera.radius.value = 800;
+	this.camera.radius.value = 760;
 	this.camera.radius._easing = .025;
 
 	this.elevation  = new bongiovi.EaseNumber(0, .05);
@@ -4642,11 +4642,11 @@ function SceneApp() {
 	}, 2000);
 
 	window.addEventListener("mousedown", function() {
-		that.camera.radius.value = 650;
+		if(that._selectedIndex >= 0) that.camera.radius.value = 600;
 	});
 
 	window.addEventListener("mouseup", function() {
-		that.camera.radius.value = 800;
+		if(that._selectedIndex >= 0) that.camera.radius.value = 760;
 	});
 
 	window.addEventListener("keydown", function(e) {
@@ -4657,6 +4657,7 @@ function SceneApp() {
 			that.selectNext();
 		} else if(e.keyCode == 65) {
 			that.selectTrack(-1);
+			that.camera.radius.value = 1000;
 		}
 	});
 
@@ -4703,7 +4704,7 @@ p._initViews = function() {
 	this._navDots = [];
 	this._navClickBind = this._onNavDot.bind(this);
 	for(var i=0; i<tracks.length; i++) {
-		var v = new ViewCalligraphy(tracks[i].trackpoints, i*20);
+		var v = new ViewCalligraphy(tracks[i].trackpoints, i*25);
 		this._calligraphies.push(v);
 
 		var div = document.createElement("div");
@@ -4858,7 +4859,7 @@ function getPoint(p) {
 
 function ViewCalligraphy(points, y) {
 	this.y = y === undefined ? 0 : y;
-	this.textureIndex = Math.floor(Math.random() * 6);
+	this.textureIndex = Math.floor(Math.random() * 5	);
 	this._points = this._simplifyPoints(points);
 	this.opacity = new bongiovi.EaseNumber(1);
 	this.progress = new bongiovi.EaseNumber(0, .025);

@@ -30,7 +30,7 @@ function getPoint(p) {
 
 function ViewCalligraphy(points, y) {
 	this.y = y === undefined ? 0 : y;
-	this.textureIndex = Math.floor(Math.random() * 6);
+	this.textureIndex = Math.floor(Math.random() * 5	);
 	this._points = this._simplifyPoints(points);
 	this.opacity = new bongiovi.EaseNumber(1);
 	this.progress = new bongiovi.EaseNumber(0, .025);
