@@ -17,6 +17,13 @@ varying vec3 vVertexPosition;
 const float W = 660.0;
 const float H = 428.0;
 
+//float n = 5.0;
+//float f = 800.0;
+	
+float getDepth(float z, float n, float f) {
+	return (2.0 * n) / (f + n - z*(f-n));
+}
+
 
 float map(float value, float sx, float sy, float tx, float ty) {
 	float p = (value - sx) / ( sy - sx);
@@ -53,6 +60,8 @@ vec3 getPos(vec2 uv) {
 
 
 const float gap = .01;
+varying float vDepth;
+
 
 void main(void) {
 	vec4 colorHeight = texture2D(texture, aTextureCoord);
@@ -68,7 +77,11 @@ void main(void) {
 	vec3 vRight = posRight - pos;
 	vec3 vBottom = posBottom - pos;
 
-    gl_Position = uPMatrix * uMVMatrix * vec4(pos, 1.0);
+	vec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));
+    gl_Position = V;
+
+    vDepth = mix(contrast(1.0-getDepth(V.z/V.w, 5.0, 800.0), 4.0, .375), 1.0, .75);
+
     vTextureCoord = aTextureCoord;
 
     vColor = colorHeight;

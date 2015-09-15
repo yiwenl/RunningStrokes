@@ -58,16 +58,20 @@ p._init = function() {
 	this.mesh.bufferIndices(indices);
 };
 
-p.render = function(texture, textureInk) {
+p.render = function(texture, textureInk, textureGradient, textureNoise) {
 	if(!this.shader.isReady() ) return;
 
 	this.shader.bind();
 	this.shader.uniform("texture", "uniform1i", 0);
-	this.shader.uniform("textureInk", "uniform1i", 1);
 	texture.bind(0);	
+	this.shader.uniform("textureInk", "uniform1i", 1);
 	textureInk.bind(1);	
-	this.shader.uniform("color", "uniform3fv", [1, 1, 1]);
-	this.shader.uniform("opacity", "uniform1f", 1);
+	this.shader.uniform("textureGradient", "uniform1i", 2);
+	textureGradient.bind(2);
+	this.shader.uniform("textureNoise", "uniform1i", 3);
+	textureNoise.bind(3);
+	this.shader.uniform("gradientOffset", "uniform1f", params.gradientOffset);
+	this.shader.uniform("noiseOffset", "uniform1f", params.noiseOffset);
 	GL.draw(this.mesh);
 };
 

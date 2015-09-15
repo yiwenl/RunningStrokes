@@ -25,15 +25,19 @@ function SceneApp() {
 	this.sceneRotation.lock(true);
 	this.camera.lockRotation(false);
 	this.camera._rx.value = -.53;
-	this.camera._rx.limit(-1.3, 0);
+	this.camera._rx.limit(-Math.PI/2, 0);
 	this.camera._ry.value = -.3;
 	this.camera.radius.value = 800;
+	this.camera.radius._easing = .025;
 
-	this.elevation = new bongiovi.EaseNumber(0);
-	this.distance = new bongiovi.EaseNumber(0);
-
+	this.elevation  = new bongiovi.EaseNumber(0, .05);
+	this.distance   = new bongiovi.EaseNumber(0, .05);
+	this.minute     = new bongiovi.EaseNumber(0, 1);
+	this.seconds    = new bongiovi.EaseNumber(0, 1);
+	
 	this.pElevation = document.querySelector('.Stats-entry--elevation');
-	this.pDistance = document.querySelector('.Stats-entry--distance');
+	this.pDistance  = document.querySelector('.Stats-entry--distance');
+	this.pDuration  = document.querySelector('.Stats-entry--duration');
 
 	this._selectedIndex = -1;
 	this.selectTrack(0);
@@ -41,8 +45,16 @@ function SceneApp() {
 	// bongiovi.Scheduler.addEF(this, this.selectNext, null, 1000);
 	var that = this;
 	setInterval(function() {
-		that.selectNext();
-	}, 1000);
+		// that.selectNext();
+	}, 2000);
+
+	window.addEventListener("mousedown", function() {
+		that.camera.radius.value = 650;
+	});
+
+	window.addEventListener("mouseup", function() {
+		that.camera.radius.value = 800;
+	});
 
 	window.addEventListener("resize", this.resize.bind(this));
 }
@@ -56,8 +68,10 @@ p._initTextures = function() {
 		minFilter:gl.NEAREST
 	}
 	this._textureHeight = new bongiovi.GLTexture(images.heightMap);
+	this._textureNoise  = new bongiovi.GLTexture(images.noise);
 	var index = Math.floor(Math.random() * 33);
 	this._textureInk = new bongiovi.GLTexture(images["inkDrops" + index]);
+	this._textureGradient = new bongiovi.GLTexture(images.gradientMap);
 
 	this._brushes = [];
 	for(var i=0; i<=5; i++) {
@@ -85,7 +99,7 @@ p._initViews = function() {
 	this._navDots = [];
 	this._navClickBind = this._onNavDot.bind(this);
 	for(var i=0; i<tracks.length; i++) {
-		var v = new ViewCalligraphy(tracks[i].trackpoints, i*10);
+		var v = new ViewCalligraphy(tracks[i].trackpoints, i*0);
 		this._calligraphies.push(v);
 
 		var div = document.createElement("div");
@@ -113,7 +127,7 @@ p.selectNext = function() {
 };
 
 p.selectTrack = function(index) {
-	console.log('Select Track :', index, this._selectedIndex);
+	// console.log('Select Track :', index, this._selectedIndex);
 	if(this._selectedIndex === index) return;
 	for(var i=0; i<this._navDots.length; i++) {
 		this._navDots[i].classList.toggle('is-selected', index == i);
@@ -126,15 +140,27 @@ p.selectTrack = function(index) {
 
 	this.elevation.value = data.elevationGain;
 	this.distance.value = data.totalDistance;
+	this.minute.value = data.duration.m;
+	this.seconds.value = data.duration.s;
+
+	for(var i=0; i<this._calligraphies.length; i++) {
+		var v = this._calligraphies[i];
+	 	if(i === this._selectedIndex) {
+	 		v.select();
+	 	} else {
+	 		v.unSelect();
+	 	}
+	}
 };
 
 p.render = function() {
-	this.camera._ry.value += -.01;
+	// this.camera._ry.value += -.01;
 	this._textureVideo.updateTexture(this.video);
 
 	GL.clear(1, 1, .986, 1);
 	this._vDotPlane.render();
-	this._vTerrain.render(this._textureHeight, this._textureInk);
+	this._vLines.render();
+	this._vTerrain.render(this._textureHeight, this._textureInk, this._textureGradient, this._textureNoise);
 
 	this.fboRender.bind();
 	GL.clear(0, 0, 0, 0);
@@ -150,15 +176,20 @@ p.render = function() {
 	GL.setMatrices(this.cameraOtho);
 	GL.rotate(this.rotationFront);
 
-	this._vPost.render(this.fboRender.getTexture(), this._textureVideo);
+	this._vPost.render(this.fboRender.getTexture(), this._textureVideo, this._textureGradient);
 
-
-	var prec = 100;
-	this.pElevation.innerHTML = Math.floor(this.elevation.value*prec)/prec + "ft";
-	this.pDistance.innerHTML = Math.floor(this.distance.value*prec)/prec + "mi";
+	function getPrec(value) {
+		var prec = 100;
+		return Math.floor(value*prec)/prec;
+	}
+	
+	this.pElevation.innerHTML = getPrec(this.elevation.value) + " ft";
+	this.pDistance.innerHTML = getPrec(this.distance.value) + " mi";
+	this.pDuration.innerHTML = getPrec(this.minute.value) + "m" + getPrec(this.seconds.value)+"s";
 };
 
 p.resize = function() {
+	this.fboRender = new bongiovi.FrameBuffer(window.innerWidth, window.innerHeight);
 	GL.setSize(window.innerWidth, window.innerHeight);
 	this.camera.resize(GL.aspectRatio);
 };

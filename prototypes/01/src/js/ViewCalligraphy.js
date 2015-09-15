@@ -32,10 +32,12 @@ function ViewCalligraphy(points, y) {
 	this.y = y === undefined ? 0 : y;
 	this.textureIndex = Math.floor(Math.random() * 6);
 	this._points = this._simplifyPoints(points);
-	// console.log(points.length, '->', this._points.length, 'Texture : ', this.textureIndex);
+	this.opacity = new bongiovi.EaseNumber(1);
+	this.progress = new bongiovi.EaseNumber(0, .025);
 
-	// bongiovi.View.call(this, null, bbongiovi.ShaderLibs.get("simpleColorFrag"));
-	bongiovi.View.call(this, bongiovi.ShaderLibs.get("generalVert"), glslify("../shaders/calligraphy.frag"));
+
+	// bongiovi.View.call(this, bongiovi.ShaderLibs.get("generalVert"), glslify("../shaders/calligraphy.frag"));
+	bongiovi.View.call(this, glslify("../shaders/calligraphy.vert"), glslify("../shaders/calligraphy.frag"));
 }
 
 var p = ViewCalligraphy.prototype = new bongiovi.View();
@@ -63,6 +65,17 @@ p._simplifyPoints = function(points) {
 	}
 
 	return newPoints;
+};
+
+p.select = function() {
+	this.opacity.value = 1;
+	this.progress.value = 1;
+};
+
+
+p.unSelect = function() {
+	this.opacity.value = 0;	
+	this.progress.setTo(0);
 };
 
 
@@ -194,6 +207,8 @@ p.render = function(texture) {
 	}
 	this.shader.uniform("position", "uniform3fv", [0, this.y, 0]);
 	this.shader.uniform("scale", "uniform3fv", [1, 1, 1]);
+	this.shader.uniform("opacity", "uniform1f", this.opacity.value);
+	this.shader.uniform("progress", "uniform1f", this.progress.value);
 	GL.draw(this.mesh);
 };
 

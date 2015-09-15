@@ -2,13 +2,20 @@
 window.bongiovi = require("./libs/bongiovi.js");
 var dat = require("dat-gui");
 
+window.params = {
+	gradientOffset:.25,
+	noiseOffset:.4
+};
+
 (function() {
 	var SceneApp = require("./SceneApp");
 
 	App = function() {
 
 		var toLoad = [
-			"assets/heightMap.png"
+			"assets/heightMap.png",
+			"assets/noise.png",
+			"assets/gradientMap.png"
 			]
 
 		for(var i=0; i<=33; i++) {
@@ -23,8 +30,6 @@ var dat = require("dat-gui");
 
 		var loader = new bongiovi.SimpleImageLoader();
 		loader.load(toLoad, this, this._onImageLoaded)
-
-		
 	}
 
 	var p = App.prototype;
@@ -49,7 +54,10 @@ var dat = require("dat-gui");
 		this._scene = new SceneApp();
 		bongiovi.Scheduler.addEF(this, this._loop);
 
-		// this.gui = new dat.GUI({width:300});
+		// return;
+		this.gui = new dat.GUI({width:300});
+		this.gui.add(params, "gradientOffset", 0, 1);
+		this.gui.add(params, "noiseOffset", 0, 1);
 
 		// this.findRegion();
 	};
@@ -81,10 +89,6 @@ var dat = require("dat-gui");
 
 			}
 		}
-
-
-		console.log("Lat : ", minLat, maxLat, ", Lng:", minLng, maxLng);
-		console.log("Lat : ", (minLat + maxLat)/2, ", Lng:", (minLng + maxLng)/2);
 	};
 
 })();

@@ -3,13 +3,20 @@
 window.bongiovi = require("./libs/bongiovi.js");
 var dat = require("dat-gui");
 
+window.params = {
+	gradientOffset:.25,
+	noiseOffset:.4
+};
+
 (function() {
 	var SceneApp = require("./SceneApp");
 
 	App = function() {
 
 		var toLoad = [
-			"assets/heightMap.png"
+			"assets/heightMap.png",
+			"assets/noise.png",
+			"assets/gradientMap.png"
 			]
 
 		for(var i=0; i<=33; i++) {
@@ -24,8 +31,6 @@ var dat = require("dat-gui");
 
 		var loader = new bongiovi.SimpleImageLoader();
 		loader.load(toLoad, this, this._onImageLoaded)
-
-		
 	}
 
 	var p = App.prototype;
@@ -50,7 +55,10 @@ var dat = require("dat-gui");
 		this._scene = new SceneApp();
 		bongiovi.Scheduler.addEF(this, this._loop);
 
-		// this.gui = new dat.GUI({width:300});
+		// return;
+		this.gui = new dat.GUI({width:300});
+		this.gui.add(params, "gradientOffset", 0, 1);
+		this.gui.add(params, "noiseOffset", 0, 1);
 
 		// this.findRegion();
 	};
@@ -82,10 +90,6 @@ var dat = require("dat-gui");
 
 			}
 		}
-
-
-		console.log("Lat : ", minLat, maxLat, ", Lng:", minLng, maxLng);
-		console.log("Lat : ", (minLat + maxLat)/2, ", Lng:", (minLng + maxLng)/2);
 	};
 
 })();
@@ -4612,15 +4616,19 @@ function SceneApp() {
 	this.sceneRotation.lock(true);
 	this.camera.lockRotation(false);
 	this.camera._rx.value = -.53;
-	this.camera._rx.limit(-1.3, 0);
+	this.camera._rx.limit(-Math.PI/2, 0);
 	this.camera._ry.value = -.3;
 	this.camera.radius.value = 800;
+	this.camera.radius._easing = .025;
 
-	this.elevation = new bongiovi.EaseNumber(0);
-	this.distance = new bongiovi.EaseNumber(0);
-
+	this.elevation  = new bongiovi.EaseNumber(0, .05);
+	this.distance   = new bongiovi.EaseNumber(0, .05);
+	this.minute     = new bongiovi.EaseNumber(0, 1);
+	this.seconds    = new bongiovi.EaseNumber(0, 1);
+	
 	this.pElevation = document.querySelector('.Stats-entry--elevation');
-	this.pDistance = document.querySelector('.Stats-entry--distance');
+	this.pDistance  = document.querySelector('.Stats-entry--distance');
+	this.pDuration  = document.querySelector('.Stats-entry--duration');
 
 	this._selectedIndex = -1;
 	this.selectTrack(0);
@@ -4628,8 +4636,16 @@ function SceneApp() {
 	// bongiovi.Scheduler.addEF(this, this.selectNext, null, 1000);
 	var that = this;
 	setInterval(function() {
-		that.selectNext();
-	}, 1000);
+		// that.selectNext();
+	}, 2000);
+
+	window.addEventListener("mousedown", function() {
+		that.camera.radius.value = 650;
+	});
+
+	window.addEventListener("mouseup", function() {
+		that.camera.radius.value = 800;
+	});
 
 	window.addEventListener("resize", this.resize.bind(this));
 }
@@ -4643,8 +4659,10 @@ p._initTextures = function() {
 		minFilter:gl.NEAREST
 	}
 	this._textureHeight = new bongiovi.GLTexture(images.heightMap);
+	this._textureNoise  = new bongiovi.GLTexture(images.noise);
 	var index = Math.floor(Math.random() * 33);
 	this._textureInk = new bongiovi.GLTexture(images["inkDrops" + index]);
+	this._textureGradient = new bongiovi.GLTexture(images.gradientMap);
 
 	this._brushes = [];
 	for(var i=0; i<=5; i++) {
@@ -4672,7 +4690,7 @@ p._initViews = function() {
 	this._navDots = [];
 	this._navClickBind = this._onNavDot.bind(this);
 	for(var i=0; i<tracks.length; i++) {
-		var v = new ViewCalligraphy(tracks[i].trackpoints, i*10);
+		var v = new ViewCalligraphy(tracks[i].trackpoints, i*0);
 		this._calligraphies.push(v);
 
 		var div = document.createElement("div");
@@ -4700,7 +4718,7 @@ p.selectNext = function() {
 };
 
 p.selectTrack = function(index) {
-	console.log('Select Track :', index, this._selectedIndex);
+	// console.log('Select Track :', index, this._selectedIndex);
 	if(this._selectedIndex === index) return;
 	for(var i=0; i<this._navDots.length; i++) {
 		this._navDots[i].classList.toggle('is-selected', index == i);
@@ -4713,15 +4731,27 @@ p.selectTrack = function(index) {
 
 	this.elevation.value = data.elevationGain;
 	this.distance.value = data.totalDistance;
+	this.minute.value = data.duration.m;
+	this.seconds.value = data.duration.s;
+
+	for(var i=0; i<this._calligraphies.length; i++) {
+		var v = this._calligraphies[i];
+	 	if(i === this._selectedIndex) {
+	 		v.select();
+	 	} else {
+	 		v.unSelect();
+	 	}
+	}
 };
 
 p.render = function() {
-	this.camera._ry.value += -.01;
+	// this.camera._ry.value += -.01;
 	this._textureVideo.updateTexture(this.video);
 
 	GL.clear(1, 1, .986, 1);
 	this._vDotPlane.render();
-	this._vTerrain.render(this._textureHeight, this._textureInk);
+	this._vLines.render();
+	this._vTerrain.render(this._textureHeight, this._textureInk, this._textureGradient, this._textureNoise);
 
 	this.fboRender.bind();
 	GL.clear(0, 0, 0, 0);
@@ -4737,15 +4767,20 @@ p.render = function() {
 	GL.setMatrices(this.cameraOtho);
 	GL.rotate(this.rotationFront);
 
-	this._vPost.render(this.fboRender.getTexture(), this._textureVideo);
+	this._vPost.render(this.fboRender.getTexture(), this._textureVideo, this._textureGradient);
 
-
-	var prec = 100;
-	this.pElevation.innerHTML = Math.floor(this.elevation.value*prec)/prec + "ft";
-	this.pDistance.innerHTML = Math.floor(this.distance.value*prec)/prec + "mi";
+	function getPrec(value) {
+		var prec = 100;
+		return Math.floor(value*prec)/prec;
+	}
+	
+	this.pElevation.innerHTML = getPrec(this.elevation.value) + " ft";
+	this.pDistance.innerHTML = getPrec(this.distance.value) + " mi";
+	this.pDuration.innerHTML = getPrec(this.minute.value) + "m" + getPrec(this.seconds.value)+"s";
 };
 
 p.resize = function() {
+	this.fboRender = new bongiovi.FrameBuffer(window.innerWidth, window.innerHeight);
 	GL.setSize(window.innerWidth, window.innerHeight);
 	this.camera.resize(GL.aspectRatio);
 };
@@ -4786,10 +4821,12 @@ function ViewCalligraphy(points, y) {
 	this.y = y === undefined ? 0 : y;
 	this.textureIndex = Math.floor(Math.random() * 6);
 	this._points = this._simplifyPoints(points);
-	// console.log(points.length, '->', this._points.length, 'Texture : ', this.textureIndex);
+	this.opacity = new bongiovi.EaseNumber(1);
+	this.progress = new bongiovi.EaseNumber(0, .025);
 
-	// bongiovi.View.call(this, null, bbongiovi.ShaderLibs.get("simpleColorFrag"));
-	bongiovi.View.call(this, bongiovi.ShaderLibs.get("generalVert"), "#define GLSLIFY 1\n\n// calligraphy.frag\n\nprecision mediump float;\n\nuniform sampler2D texture;\nvarying vec2 vTextureCoord;\n\nvoid main(void) {\n    vec4 color = texture2D(texture, vTextureCoord);\n    if(color.a < .05) discard;\n\n    gl_FragColor = color;\n}");
+
+	// bongiovi.View.call(this, bongiovi.ShaderLibs.get("generalVert"), glslify("../shaders/calligraphy.frag"));
+	bongiovi.View.call(this, "#define GLSLIFY 1\n\n// calligraphy.vert\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nuniform vec3 position;\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\n\nvarying vec2 vTextureCoord;\nvarying vec3 vVertexPosition;\nvarying float vDepth;\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n//float n = 5.0;\n//float f = 800.0;\n\t\nfloat getDepth(float z, float n, float f) {\n\treturn (2.0 * n) / (f + n - z*(f-n));\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvoid main(void) {\n\tvec3 pos = aVertexPosition + position;\n\tvec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));\n    gl_Position = V;\n\n    vDepth = contrast(1.0-getDepth(V.z/V.w, 5.0, 800.0), 4.0, .375);\n\n    vTextureCoord = aTextureCoord;\n}", "#define GLSLIFY 1\n\n// calligraphy.frag\n\nprecision mediump float;\n\nuniform sampler2D texture;\nvarying vec2 vTextureCoord;\nuniform float opacity;\nuniform float progress;\nvarying float vDepth;\n\nconst vec3 background_color = vec3(1.0, 1.0, 250.0/255.0);\nconst float range = .1;\nconst float PI = 3.141592657;\n\nvoid main(void) {\n    vec4 color = texture2D(texture, vTextureCoord);\n    if(color.a < .05) discard;\n\n    float offset = 0.0;\n    if(vTextureCoord.x < progress) offset = 1.0;\n    else if(vTextureCoord.x < progress + range) {\n    \toffset = cos((vTextureCoord.x - progress) / range * PI * .5);\n    }\n\n    // color.rgb\t\t= mix(background_color, color.rgb, mix(vDepth, 1.0,);\n\n    gl_FragColor = color * opacity * offset;\n}");
 }
 
 var p = ViewCalligraphy.prototype = new bongiovi.View();
@@ -4817,6 +4854,17 @@ p._simplifyPoints = function(points) {
 	}
 
 	return newPoints;
+};
+
+p.select = function() {
+	this.opacity.value = 1;
+	this.progress.value = 1;
+};
+
+
+p.unSelect = function() {
+	this.opacity.value = 0;	
+	this.progress.setTo(0);
 };
 
 
@@ -4948,6 +4996,8 @@ p.render = function(texture) {
 	}
 	this.shader.uniform("position", "uniform3fv", [0, this.y, 0]);
 	this.shader.uniform("scale", "uniform3fv", [1, 1, 1]);
+	this.shader.uniform("opacity", "uniform1f", this.opacity.value);
+	this.shader.uniform("progress", "uniform1f", this.progress.value);
 	GL.draw(this.mesh);
 };
 
@@ -5040,7 +5090,7 @@ var gl;
 
 
 function ViewPost() {
-	bongiovi.View.call(this, null, "#define GLSLIFY 1\n\nprecision mediump float;\n\nuniform sampler2D texture;\nuniform sampler2D textureVideo;\nvarying vec2 vTextureCoord;\n\nvoid main(void) {\n    vec4 color = texture2D(texture, vTextureCoord);\n    vec3 colorVideo = texture2D(textureVideo, vTextureCoord).rgb;\n    colorVideo = mix(color.rgb, colorVideo, .5);\n    color.rgb *= colorVideo * 1.25;\n    // color.rgb = colorVideo;\n\n    gl_FragColor = color;\n}");
+	bongiovi.View.call(this, null, "#define GLSLIFY 1\n\nprecision mediump float;\n\nuniform sampler2D texture;\nuniform sampler2D textureVideo;\nuniform sampler2D textureGradient;\nvarying vec2 vTextureCoord;\nuniform float gradientOffset;\n\nconst float MAX_BRIGHTNESS = length(vec3(1.0));\n\nvoid main(void) {\n\tvec4 color      = texture2D(texture, vTextureCoord);\n\tvec3 colorVideo = texture2D(textureVideo, vTextureCoord).rgb;\n\tcolorVideo      = mix(color.rgb, colorVideo, .5);\n\tcolor.rgb       *= colorVideo * 1.25;\n\t\n\tfloat p         = length(color.rgb) / MAX_BRIGHTNESS;\n\tvec2 uvMap      = vec2(p, .5);\n\t\n\tcolor.rgb       = mix(color.rgb, texture2D(textureGradient, uvMap).rgb, gradientOffset);\n    gl_FragColor = color;\n}");
 }
 
 var p = ViewPost.prototype = new bongiovi.View();
@@ -5051,7 +5101,7 @@ p._init = function() {
 	this.mesh = bongiovi.MeshUtils.createPlane(2, 2, 1);
 };
 
-p.render = function(texture, textureVideo) {
+p.render = function(texture, textureVideo, textureGradient) {
 	if(!this.shader.isReady() ) return;
 
 	this.shader.bind();
@@ -5059,6 +5109,9 @@ p.render = function(texture, textureVideo) {
 	texture.bind(0);
 	this.shader.uniform("textureVideo", "uniform1i", 1);
 	textureVideo.bind(1);
+	this.shader.uniform("textureGradient", "uniform1i", 2);
+	textureGradient.bind(2);
+	this.shader.uniform("gradientOffset", "uniform1f", params.gradientOffset);
 	GL.draw(this.mesh);
 };
 
@@ -5070,7 +5123,7 @@ var gl;
 
 
 function ViewTerrain() {
-	bongiovi.View.call(this, "#define GLSLIFY 1\n\n#define SHADER_NAME BASIC_VERTEX\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\n\nvarying vec2 vTextureCoord;\nvarying vec4 vColor;\nvarying vec3 vNormal;\nvarying vec3 vVertexPosition;\n\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvec2 contrast(vec2 mValue, float mScale, float mMidPoint) {\n\treturn vec2( contrast(mValue.r, mScale, mMidPoint), contrast(mValue.g, mScale, mMidPoint));\n}\n\nvec2 contrast(vec2 mValue, float mScale) {\n\treturn contrast(mValue, mScale, .5);\n}\n\nvec3 getPos(vec2 uv) {\n\tvec2 newUv = contrast(uv, .995);\n\tfloat h = texture2D(texture, newUv).r;\n\tvec3 v;\n\n\tv.x = -W*.5 + W * newUv.x;\n\tv.z = H*.5 - H * newUv.y;\n\n\tv.y = h * 300.0 - 50.0;\n\treturn v;\n}\n\n\nconst float gap = .01;\n\nvoid main(void) {\n\tvec4 colorHeight = texture2D(texture, aTextureCoord);\n\tvec3 pos = aVertexPosition;\n\tpos = getPos(aTextureCoord);\n\n\tvec2 uvRight = aTextureCoord+vec2(gap, 0.0);\n\tvec2 uvBottom = aTextureCoord+vec2(0.0, gap);\n\t\n\tvec3 posRight = getPos(uvRight);\n\tvec3 posBottom = getPos(uvBottom);\n\n\tvec3 vRight = posRight - pos;\n\tvec3 vBottom = posBottom - pos;\n\n    gl_Position = uPMatrix * uMVMatrix * vec4(pos, 1.0);\n    vTextureCoord = aTextureCoord;\n\n    vColor = colorHeight;\n    vNormal = normalize(cross(vRight, vBottom));\n    if(uvRight.x >= 1.0 || uvBottom.y >= 1.0) {\n    \tvNormal = vec3(0.0, 1.0, 0.0);\n    }\n    vVertexPosition = pos;\n}", "#define GLSLIFY 1\n\n#define SHADER_NAME SIMPLE_TEXTURE\n\nprecision highp float;\nvarying vec4 vColor;\n\nvarying vec2 vTextureCoord;\nuniform sampler2D textureInk;\nvarying vec3 vNormal;\n\n\nconst vec3 DIRECTIONAL_LIGHT_COLOR \t\t= vec3(1.0);\nconst vec3 AMBIENT_LIGHT_COLOR \t\t\t= vec3(.4);\nconst float DIRECTIONAL_LIGHT_WEIGHT \t= 1.0;\nconst vec3 DIRECTIONAL_LIGHT_POS \t\t= vec3(.5, 0.3, 1.0);\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nvoid main(void) {\n\tvec4 color = texture2D(textureInk, vTextureCoord);\n\tfloat grey = (color.r + color.g + color.b) / 3.0;\n\tcolor.rgb = mix(color.rgb, vec3(grey), .45);\n\tcolor.rgb *= 1.5;\n\t// color.rgb = vec3(1.0, 1.0, .92);\n\tvec3 ambient = AMBIENT_LIGHT_COLOR;\n\tfloat lamberFactor = max(0.0, dot(vNormal, normalize(DIRECTIONAL_LIGHT_POS)));\n\tvec3 directional = DIRECTIONAL_LIGHT_COLOR * lamberFactor * DIRECTIONAL_LIGHT_WEIGHT;\n\n\t// color.rgb = ambient + color.rgb * directional;\n\tcolor.rgb = color.rgb * (ambient + directional);\n\tgl_FragColor = color;\n}");
+	bongiovi.View.call(this, "#define GLSLIFY 1\n\n#define SHADER_NAME BASIC_VERTEX\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\n\nvarying vec2 vTextureCoord;\nvarying vec4 vColor;\nvarying vec3 vNormal;\nvarying vec3 vVertexPosition;\n\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n//float n = 5.0;\n//float f = 800.0;\n\t\nfloat getDepth(float z, float n, float f) {\n\treturn (2.0 * n) / (f + n - z*(f-n));\n}\n\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvec2 contrast(vec2 mValue, float mScale, float mMidPoint) {\n\treturn vec2( contrast(mValue.r, mScale, mMidPoint), contrast(mValue.g, mScale, mMidPoint));\n}\n\nvec2 contrast(vec2 mValue, float mScale) {\n\treturn contrast(mValue, mScale, .5);\n}\n\nvec3 getPos(vec2 uv) {\n\tvec2 newUv = contrast(uv, .995);\n\tfloat h = texture2D(texture, newUv).r;\n\tvec3 v;\n\n\tv.x = -W*.5 + W * newUv.x;\n\tv.z = H*.5 - H * newUv.y;\n\n\tv.y = h * 300.0 - 50.0;\n\treturn v;\n}\n\n\nconst float gap = .01;\nvarying float vDepth;\n\n\nvoid main(void) {\n\tvec4 colorHeight = texture2D(texture, aTextureCoord);\n\tvec3 pos = aVertexPosition;\n\tpos = getPos(aTextureCoord);\n\n\tvec2 uvRight = aTextureCoord+vec2(gap, 0.0);\n\tvec2 uvBottom = aTextureCoord+vec2(0.0, gap);\n\t\n\tvec3 posRight = getPos(uvRight);\n\tvec3 posBottom = getPos(uvBottom);\n\n\tvec3 vRight = posRight - pos;\n\tvec3 vBottom = posBottom - pos;\n\n\tvec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));\n    gl_Position = V;\n\n    vDepth = mix(contrast(1.0-getDepth(V.z/V.w, 5.0, 800.0), 4.0, .375), 1.0, .75);\n\n    vTextureCoord = aTextureCoord;\n\n    vColor = colorHeight;\n    vNormal = normalize(cross(vRight, vBottom));\n    if(uvRight.x >= 1.0 || uvBottom.y >= 1.0) {\n    \tvNormal = vec3(0.0, 1.0, 0.0);\n    }\n    vVertexPosition = pos;\n}", "#define GLSLIFY 1\n\n#define SHADER_NAME SIMPLE_TEXTURE\n\nprecision highp float;\nvarying vec4 vColor;\n\nvarying vec2 vTextureCoord;\nuniform sampler2D textureInk;\nuniform sampler2D textureGradient;\nuniform sampler2D textureNoise;\nvarying vec3 vNormal;\nuniform float gradientOffset;\nuniform float noiseOffset;\nvarying float vDepth;\n\nconst vec3 DIRECTIONAL_LIGHT_COLOR \t\t= vec3(1.0);\nconst vec3 AMBIENT_LIGHT_COLOR \t\t\t= vec3(.3);\nconst float DIRECTIONAL_LIGHT_WEIGHT \t= 1.0;\nconst vec3 DIRECTIONAL_LIGHT_POS \t\t= vec3(.5, 0.3, 1.0);\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nconst float MAX_BRIGHTNESS = length(vec3(1.0));\nconst vec3 background_color = vec3(1.0, 1.0, 250.0/255.0);\n\nvoid main(void) {\n\tvec4 color         = texture2D(textureInk, vTextureCoord);\n\tvec2 uvNoise       = vTextureCoord * 5.0;\n\tfloat grey         = (color.r + color.g + color.b) / 3.0;\n\tcolor.rgb          = mix(color.rgb, vec3(grey), .45);\n\tcolor.rgb          *= 1.5;\n\tvec3 ambient       = AMBIENT_LIGHT_COLOR;\n\tvec3 bump \t\t   = texture2D(textureNoise, uvNoise).rgb - vec3(.5);\n\tvec3 normal        = normalize(vNormal + bump * noiseOffset);\n\tfloat lamberFactor = max(0.0, dot(normal, normalize(DIRECTIONAL_LIGHT_POS)));\n\tvec3 directional   = DIRECTIONAL_LIGHT_COLOR * lamberFactor * DIRECTIONAL_LIGHT_WEIGHT;\n\t\n\tcolor.rgb          = color.rgb * (ambient + directional);\n\t// color.rgb          = ambient + color.rgb * ( directional);\n\n\tfloat p         = length(color.rgb) / MAX_BRIGHTNESS;\n\tvec2 uvMap      = vec2(p, .5);\n\t\n\tcolor.rgb       = mix(color.rgb, texture2D(textureGradient, uvMap).rgb, gradientOffset);\n\tcolor.rgb\t\t= mix(background_color, color.rgb, vDepth);\n\t// color.a \t\t*= vDepth;\n\n\tgl_FragColor = color;\n}");
 }
 
 var p = ViewTerrain.prototype = new bongiovi.View();
@@ -5124,16 +5177,20 @@ p._init = function() {
 	this.mesh.bufferIndices(indices);
 };
 
-p.render = function(texture, textureInk) {
+p.render = function(texture, textureInk, textureGradient, textureNoise) {
 	if(!this.shader.isReady() ) return;
 
 	this.shader.bind();
 	this.shader.uniform("texture", "uniform1i", 0);
-	this.shader.uniform("textureInk", "uniform1i", 1);
 	texture.bind(0);	
+	this.shader.uniform("textureInk", "uniform1i", 1);
 	textureInk.bind(1);	
-	this.shader.uniform("color", "uniform3fv", [1, 1, 1]);
-	this.shader.uniform("opacity", "uniform1f", 1);
+	this.shader.uniform("textureGradient", "uniform1i", 2);
+	textureGradient.bind(2);
+	this.shader.uniform("textureNoise", "uniform1i", 3);
+	textureNoise.bind(3);
+	this.shader.uniform("gradientOffset", "uniform1f", params.gradientOffset);
+	this.shader.uniform("noiseOffset", "uniform1f", params.noiseOffset);
 	GL.draw(this.mesh);
 };
 

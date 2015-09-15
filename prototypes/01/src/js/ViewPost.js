@@ -16,7 +16,7 @@ p._init = function() {
 	this.mesh = bongiovi.MeshUtils.createPlane(2, 2, 1);
 };
 
-p.render = function(texture, textureVideo) {
+p.render = function(texture, textureVideo, textureGradient) {
 	if(!this.shader.isReady() ) return;
 
 	this.shader.bind();
@@ -24,6 +24,9 @@ p.render = function(texture, textureVideo) {
 	texture.bind(0);
 	this.shader.uniform("textureVideo", "uniform1i", 1);
 	textureVideo.bind(1);
+	this.shader.uniform("textureGradient", "uniform1i", 2);
+	textureGradient.bind(2);
+	this.shader.uniform("gradientOffset", "uniform1f", params.gradientOffset);
 	GL.draw(this.mesh);
 };
 
