@@ -36,18 +36,25 @@ window.params = {
 		}
 
 		var loader = new bongiovi.SimpleImageLoader();
-		loader.load(toLoad, this, this._onImageLoaded)
+		loader.load(toLoad, this, this._onImageLoaded, this._onImageProgress);
 	}
 
 	var p = App.prototype;
 
 	p._onImageLoaded = function(img) {
+		document.body.querySelector('.Loading-Bar').style.width = "100%";
+		document.body.querySelector('.Loading-Container').classList.add("hide");
 		window.images = img;
 		console.log(window.images);
 		if(document.body) this._init();
 		else {
 			window.addEventListener("load", this._init.bind(this));
 		}
+	};
+
+	p._onImageProgress = function(p) {
+		var pp = Math.floor(p*100) + "%";
+		document.body.querySelector('.Loading-Bar').style.width = pp;
 	};
 
 	p._init = function() {
@@ -5009,7 +5016,7 @@ function ViewCalligraphy(points, y) {
 	this.opacity = new bongiovi.EaseNumber(1);
 	this.progress = new bongiovi.EaseNumber(0, .025);
 
-	bongiovi.View.call(this, "#define GLSLIFY 1\n\n// calligraphy.vert\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec3 aNormals;\nattribute vec2 aTextureCoord;\n\nuniform vec3 position;\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\n\n\nvarying vec2 vTextureCoord;\nvarying vec3 vVertexPosition;\nvarying float vDepth;\nvarying vec3 vNormal;\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n//float n = 5.0;\n//float f = 800.0;\n\t\nfloat getDepth(float z, float n, float f) {\n\treturn (2.0 * n) / (f + n - z*(f-n));\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvoid main(void) {\n\tvec3 pos = aVertexPosition + position;\n\tvec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));\n    gl_Position = V;\n\n    vDepth = contrast(1.0-getDepth(V.z/V.w, 5.0, 800.0), 4.0, .375);\n\n    vTextureCoord = aTextureCoord;\n    vec3 N = aNormals;\n    N.x *= 5.0;\n\n    vNormal = normalize(N);\n}", "#define GLSLIFY 1\n\n// calligraphy.frag\n\nprecision mediump float;\n\nuniform sampler2D texture;\nuniform sampler2D textureNormal;\nvarying vec2 vTextureCoord;\nuniform float opacity;\nuniform float progress;\nvarying float vDepth;\nvarying vec3 vNormal;\n\n\nconst vec3 background_color = vec3(1.0, 1.0, 1.0);\nconst float range = .1;\nconst float PI = 3.141592657;\n\nconst vec3 DIRECTIONAL_LIGHT_COLOR \t\t= vec3(1.0);\nconst vec3 AMBIENT_LIGHT_COLOR \t\t\t= vec3(.1);\nconst float DIRECTIONAL_LIGHT_WEIGHT \t= 2.0;\nconst vec3 DIRECTIONAL_LIGHT_POS \t\t= vec3(.5, 0.3, 1.0);\n\nconst vec3 COLOR_RED = vec3(221.0/255.0, 36.0/255.0, 37.0/255.0);\n\nvoid main(void) {\n    vec4 color = texture2D(texture, vTextureCoord);\n    color.rgb *= COLOR_RED * 1.2;\n    if(color.a < .05) discard;\n\n    float offset = 0.0;\n    if(vTextureCoord.x < progress) offset = 1.0;\n    else if(vTextureCoord.x < progress + range) {\n    \toffset = cos((vTextureCoord.x - progress) / range * PI * .5);\n    }\n\n    vec2 uvNormal \t   = vTextureCoord*20.0;\n    uvNormal.y \t\t   *= .05;\n    vec3 bump \t\t   = (texture2D(textureNormal, uvNormal).rgb-.5) * 2.0;\n    vec3 normal        = normalize(vNormal + bump * .5);\n\tvec3 ambient       = AMBIENT_LIGHT_COLOR;\n\tfloat lamberFactor = max(0.0, dot(normal, normalize(DIRECTIONAL_LIGHT_POS)));\n\tvec3 directional   = DIRECTIONAL_LIGHT_COLOR * lamberFactor * DIRECTIONAL_LIGHT_WEIGHT;\n\n\tcolor.rgb          = color.rgb * (ambient + directional);\n\n    gl_FragColor = color * opacity * offset;\n\n\n    //\tdebug normal\n    // gl_FragColor.rgb = (normal + 1.0) * .5;\n}");
+	bongiovi.View.call(this, "#define GLSLIFY 1\n\n// calligraphy.vert\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec3 aNormals;\nattribute vec2 aTextureCoord;\n\nuniform vec3 position;\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\n\n\nvarying vec2 vTextureCoord;\nvarying vec3 vVertexPosition;\nvarying float vDepth;\nvarying vec3 vNormal;\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n//float n = 5.0;\n//float f = 800.0;\n\t\nfloat getDepth(float z, float n, float f) {\n\treturn (2.0 * n) / (f + n - z*(f-n));\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvoid main(void) {\n\tvec3 pos = aVertexPosition + position;\n\tvec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));\n    gl_Position = V;\n\n    vDepth = contrast(1.0-getDepth(V.z/V.w, 5.0, 800.0), 4.0, .375);\n\n    vTextureCoord = aTextureCoord;\n    vec3 N = aNormals;\n    N.x *= 5.0;\n\n    vNormal = normalize(N);\n}", "#define GLSLIFY 1\n\n// calligraphy.frag\n\nprecision mediump float;\n\nuniform sampler2D texture;\nuniform sampler2D textureNormal;\nvarying vec2 vTextureCoord;\nuniform float opacity;\nuniform float progress;\nvarying float vDepth;\nvarying vec3 vNormal;\n\n\nconst vec3 background_color = vec3(1.0, 1.0, 1.0);\nconst float range = .1;\nconst float PI = 3.141592657;\n\nconst vec3 DIRECTIONAL_LIGHT_COLOR \t\t= vec3(1.0);\nconst vec3 AMBIENT_LIGHT_COLOR \t\t\t= vec3(.1);\nconst float DIRECTIONAL_LIGHT_WEIGHT \t= 2.0;\nconst vec3 DIRECTIONAL_LIGHT_POS \t\t= vec3(.5, 0.3, 1.0);\n\nconst vec3 COLOR_RED = vec3(221.0/255.0, 36.0/255.0, 37.0/255.0);\n\nvoid main(void) {\n    vec4 color = texture2D(texture, vTextureCoord);\n    color.rgb *= COLOR_RED * 1.5;\n    if(color.a < .05) discard;\n\n    float offset = 0.0;\n    if(vTextureCoord.x < progress) offset = 1.0;\n    else if(vTextureCoord.x < progress + range) {\n    \toffset = cos((vTextureCoord.x - progress) / range * PI * .5);\n    }\n\n    vec2 uvNormal \t   = vTextureCoord*20.0;\n    uvNormal.y \t\t   *= .05;\n    vec3 bump \t\t   = (texture2D(textureNormal, uvNormal).rgb-.5) * 2.0;\n    vec3 normal        = normalize(vNormal + bump * .5);\n\tvec3 ambient       = AMBIENT_LIGHT_COLOR;\n\tfloat lamberFactor = max(0.0, dot(normal, normalize(DIRECTIONAL_LIGHT_POS)));\n\tvec3 directional   = DIRECTIONAL_LIGHT_COLOR * lamberFactor * DIRECTIONAL_LIGHT_WEIGHT;\n\n\tcolor.rgb          = color.rgb * (ambient + directional);\n\n    gl_FragColor = color * opacity * offset;\n\n\n    //\tdebug normal\n    // gl_FragColor.rgb = (normal + 1.0) * .5;\n}");
 }
 
 var p = ViewCalligraphy.prototype = new bongiovi.View();

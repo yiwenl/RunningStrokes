@@ -35,18 +35,25 @@ window.params = {
 		}
 
 		var loader = new bongiovi.SimpleImageLoader();
-		loader.load(toLoad, this, this._onImageLoaded)
+		loader.load(toLoad, this, this._onImageLoaded, this._onImageProgress);
 	}
 
 	var p = App.prototype;
 
 	p._onImageLoaded = function(img) {
+		document.body.querySelector('.Loading-Bar').style.width = "100%";
+		document.body.querySelector('.Loading-Container').classList.add("hide");
 		window.images = img;
 		console.log(window.images);
 		if(document.body) this._init();
 		else {
 			window.addEventListener("load", this._init.bind(this));
 		}
+	};
+
+	p._onImageProgress = function(p) {
+		var pp = Math.floor(p*100) + "%";
+		document.body.querySelector('.Loading-Bar').style.width = pp;
 	};
 
 	p._init = function() {

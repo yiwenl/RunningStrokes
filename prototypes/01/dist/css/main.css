@@ -16,6 +16,42 @@ h1, h2, h3, h4, text, p {
   -webkit-font-smoothing: antialiased;
   -moz-osx-webkit-font-smoothing: antialiased; }
 
+.Loading-Container {
+  pointer-events: none;
+  opacity: 1;
+  transition: all .5s ease-out .25s; }
+  .Loading-Container.hide {
+    opacity: 0; }
+
+.Loading {
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  width: 200px;
+  position: absolute;
+  left: 50%;
+  margin-left: -100px;
+  text-align: center;
+  margin-top: -30px;
+  top: 50%; }
+
+.Loading-Bar {
+  transition: all .25s ease-out;
+  position: absolute;
+  background: rgba(150, 150, 150, 0.7);
+  width: 0%;
+  height: 1px;
+  left: 0px;
+  top: 50%; }
+
+.Loading-BarBg {
+  transition: all .5s ease-out;
+  position: absolute;
+  background: rgba(220, 220, 220, 0.5);
+  width: 100%;
+  height: 1px;
+  left: 0px;
+  top: 50%; }
+
 .UI {
   opacity: 0;
   transition: all .5s ease-out; }
@@ -23,6 +59,7 @@ h1, h2, h3, h4, text, p {
     opacity: 1; }
 
 .Main-Canvas {
+  opacity: 0;
   width: 100%;
   height: 100%;
   top: 0px;

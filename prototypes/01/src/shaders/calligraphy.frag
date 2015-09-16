@@ -24,7 +24,7 @@ const vec3 COLOR_RED = vec3(221.0/255.0, 36.0/255.0, 37.0/255.0);
 
 void main(void) {
     vec4 color = texture2D(texture, vTextureCoord);
-    color.rgb *= COLOR_RED * 1.2;
+    color.rgb *= COLOR_RED * 1.5;
     if(color.a < .05) discard;
 
     float offset = 0.0;
