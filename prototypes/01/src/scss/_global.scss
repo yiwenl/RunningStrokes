@@ -32,35 +32,43 @@ h1,h2,h3,h4,text,p {
 .Footer {
 	width: 100%;
 	height: 40px;
-	background:rgba(0, 0, 0, .05);
+	/*background:rgba(0, 0, 0, .05);*/
 	position: absolute;
 	z-index: 999;
 	bottom:0px;
-	display:flex;
-	align-items:center;
-	justify-content:space-around;
+	-webkit-padding-start: 0px;
+    -webkit-margin-before: 0em;
+    -webkit-margin-after: 0em;
+    display: table;
+}
+
+.FooterContainer {
+	
+	display:table-row;
+	table-layout: fixed;
+    -webkit-padding-start: 0px;
+    -webkit-margin-before: 0em;
+    -webkit-margin-after: 0em;
 }
 
 
 .Footer-navigationDot {
-	width:4px;
-	height:4px;
-	background: #424242;
-	opacity: .25;
-	border-radius:50%;
+	box-sizing: border-box;
+	padding-right:1px;
+	border-right:1px solid #fff;
+	opacity: .7;
 	cursor:pointer;
-
+	display: table-cell;
+	background:#a3a3a3;
+	transform:translate(0, 5px);
 	transition:all .25s ease-out;
 
-	&:hover {
-		transform:scale(1.5);
+	&:hover, &.is-selected {
+		margin-top:0px;
+		height:10px;
 		opacity: 1;
-	}
-
-
-	&.is-selected {
-		transform:scale(1.5);
-		opacity: 1;	
+		background:#dd2425;
+		transform:translate(0, 0);
 	}
 }
 
@@ -84,26 +92,63 @@ video {
 }
 
 .Stats {
+	pointer-events:none;
+	width:100%;
 	position: absolute;;
 	margin: 30px;
-	bottom:40px;
+	top:15%;
 	right:0px;
-	width:400px;
 	z-index: 999;
+	color: #ee3421;
+
+	display: flex;
+	align-items:center;
+	justify-content:center;
 }
 
 .Stats--sum {
-	left:0px;
+	width:auto;
+	right:0px;
+	top:inherit;
+	bottom:0px;
+	color: #0b0b0b;
+	margin-bottom:100px;
+	margin-right:37px;
+}
+
+
+.Stats-entryContainer {
+	/*clear:both;*/
+	margin-left:20px;
+
+	&:nth-child(1) {
+		margin-left:0px;
+	}
+}
+
+.Stats-entryTitle {
+	transform:rotate(-90deg);
+	font-family: 'Roboto', sans-serif;
+	font-size: 14px;
+	line-height: 21px;
+	float:left;
+	margin-top:0px;
+	margin-bottom:0px;
+	opacity: .5;
+
+	.Stats--sum & {
+		color:#bbbbbb;
+		opacity: 1;
+	}
 }
 
 .Stats-entry {
-	font-family: 'Archer-Light';
-	font-size:16px;
+	font-family: 'Roboto', sans-serif;
+	font-size:35px;
 	padding-top:5px;
 	margin:0px;
-	color:#424242;
-	clear:both;
-	float:right;
+	float:left;
+	margin-top: -17.5px;
 
 	.Stats--sum & {
 		float:left;

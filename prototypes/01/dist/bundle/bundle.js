@@ -4738,8 +4738,9 @@ p._initViews = function() {
 		// var w = new ViewWireFrame(v.positions, v.coords, v.indices);
 		// this._wireframes.push(w);
 
-		var div = document.createElement("div");
+		var div = document.createElement("li");
 		div.className = 'Footer-navigationDot';
+		// div.innerHTML = .date;
 		div.trackIndex = i;
 		div.addEventListener("click", this._navClickBind);
 		this._navDots.push(div);
@@ -4824,7 +4825,7 @@ p.render = function() {
 	// this.camera._ry.value += -.01;
 	this._textureVideo.updateTexture(this.video);
 
-	GL.clear(1, 1, .986, 1);
+	GL.clear(1, 1, 1, 1);
 	gl.enable(gl.CULL_FACE);
 	if(params.renderDots) this._vDotPlane.render();
 	if(params.renderHeightLines) this._vLines.render();
@@ -4870,17 +4871,34 @@ p.render = function() {
 	// if(params.renderStroke)	this._vCopy.render(this.fboRender.getTexture());	
 	// this._vCopy.render(this.fboBlur1.getTexture());
 
+	function formNumberString(value) {
+		var ary = value.toString().split(".");
+		var str = ary[0];
+		// while(str.length < 2) str = "0" + str;
+		if(ary[1]) {
+			str += "." + ary[1];
+			while(str.length < 5) str += "0";
+		} else {
+			str += ".00";
+		}
+		return str;	
+	}
+
 	function getPrec(value, p) {
 		var prec = p == undefined ? 100 : p;
 		return Math.floor(value*prec)/prec;
 	}
+
+
 	
-	this.pElevation.innerHTML = getPrec(this.elevation.value) + " ft";
-	this.pDistance.innerHTML = getPrec(this.distance.value) + " mi";
-	this.pDuration.innerHTML = getPrec(this.minute.value) + "m" + getPrec(this.seconds.value)+"s";
-	this.pSumDist.innerHTML = getPrec(this._totalDist.value) + " mi";
-	this.pSumElev.innerHTML = getPrec(this._totalElev.value) + " ft";
-	this.pSumRuns.innerHTML = getPrec(this.runs.value, 1) + " runs in total";
+	this.pElevation.innerHTML = formNumberString(getPrec(this.elevation.value));
+	this.pDistance.innerHTML = formNumberString(getPrec(this.distance.value));
+	this.pDuration.innerHTML = getPrec(this.minute.value) + "'" + getPrec(this.seconds.value);
+
+
+	this.pSumDist.innerHTML = getPrec(this._totalDist.value);
+	this.pSumElev.innerHTML = getPrec(this._totalElev.value);
+	this.pSumRuns.innerHTML = getPrec(this.runs.value, 1);
 };
 
 p.resize = function() {
@@ -5278,7 +5296,7 @@ var gl;
 
 
 function ViewTerrain() {
-	bongiovi.View.call(this, "#define GLSLIFY 1\n\n#define SHADER_NAME VERTEX_TERRAIN\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\nuniform sampler2D textureDetail;\n\nvarying vec2 vTextureCoord;\nvarying vec4 vColor;\nvarying vec3 vNormal;\nvarying vec3 vVertexPosition;\n\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n//float n = 5.0;\n//float f = 800.0;\n\t\nfloat getDepth(float z, float n, float f) {\n\treturn (2.0 * n) / (f + n - z*(f-n));\n}\n\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvec2 contrast(vec2 mValue, float mScale, float mMidPoint) {\n\treturn vec2( contrast(mValue.r, mScale, mMidPoint), contrast(mValue.g, mScale, mMidPoint));\n}\n\nvec2 contrast(vec2 mValue, float mScale) {\n\treturn contrast(mValue, mScale, .5);\n}\n\nvec3 getPos(vec2 uv) {\n\tvec2 newUv = contrast(uv, .995);\n\tvec2 uvDetail = newUv * 3.0;\n\tfloat h = texture2D(texture, newUv).r;\n\tfloat hDetail = texture2D(textureDetail, uvDetail).r * .005;\n\th += hDetail;\n\tvec3 v;\n\n\tv.x = -W*.5 + W * newUv.x;\n\tv.z = H*.5 - H * newUv.y;\n\n\tv.y = h * 300.0 - 50.0;\n\treturn v;\n}\n\n\nconst float gap = .01;\nvarying float vDepth;\n\n\nvoid main(void) {\n\tvec4 colorHeight = texture2D(texture, aTextureCoord);\n\tvec3 pos = aVertexPosition;\n\tpos = getPos(aTextureCoord);\n\n\tvec2 uvRight = aTextureCoord+vec2(gap, 0.0);\n\tvec2 uvBottom = aTextureCoord+vec2(0.0, gap);\n\t\n\tvec3 posRight = getPos(uvRight);\n\tvec3 posBottom = getPos(uvBottom);\n\n\tvec3 vRight = posRight - pos;\n\tvec3 vBottom = posBottom - pos;\n\n\tvec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));\n    gl_Position = V;\n\n    // vDepth = mix(contrast(1.0-getDepth(V.z/V.w, 5.0, 760.0), 3.0, .375), 1.0, .95);\n    vDepth = contrast(1.0-getDepth(V.z/V.w, 5.0, 760.0), 3.5, .325);\n\n    vTextureCoord = aTextureCoord;\n\n    vColor = colorHeight;\n    vNormal = normalize(cross(vRight, vBottom));\n    if(uvRight.x >= 1.0 || uvBottom.y >= 1.0) {\n    \tvNormal = vec3(0.0, 1.0, 0.0);\n    }\n    vVertexPosition = pos;\n}", "#define GLSLIFY 1\n\n#define SHADER_NAME SIMPLE_TEXTURE\n\nprecision highp float;\nvarying vec4 vColor;\n\nvarying vec2 vTextureCoord;\nuniform sampler2D textureInk;\nuniform sampler2D textureGradient;\nuniform sampler2D textureNoise;\nvarying vec3 vNormal;\nuniform float gradientOffset;\nuniform float noiseOffset;\nvarying float vDepth;\n\nconst vec3 DIRECTIONAL_LIGHT_COLOR \t\t= vec3(1.0);\nconst vec3 AMBIENT_LIGHT_COLOR \t\t\t= vec3(.4);\nconst float DIRECTIONAL_LIGHT_WEIGHT \t= 1.0;\nconst vec3 DIRECTIONAL_LIGHT_POS \t\t= vec3(.5, 0.3, 1.0);\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\n\nconst vec3 background_color = vec3(1.0, 1.0, 250.0/255.0);\n\nvoid main(void) {\n\tfloat MAX_BRIGHTNESS = length(vec3(1.0));\n\t\n\tvec4 color         = texture2D(textureInk, vTextureCoord);\n\tvec2 uvNoise       = vTextureCoord * 5.0;\n\tfloat grey         = (color.r + color.g + color.b) / 3.0;\n\tcolor.rgb          = mix(color.rgb, vec3(grey), .35);\n\tcolor.rgb          *= 1.5;\n\tvec3 ambient       = AMBIENT_LIGHT_COLOR;\n\tvec3 bump \t\t   = texture2D(textureNoise, uvNoise).rgb - vec3(.5);\n\tvec3 normal        = normalize(vNormal + bump * noiseOffset);\n\tfloat lamberFactor = max(0.0, dot(normal, normalize(DIRECTIONAL_LIGHT_POS)));\n\tvec3 directional   = DIRECTIONAL_LIGHT_COLOR * lamberFactor * DIRECTIONAL_LIGHT_WEIGHT;\n\t\n\tcolor.rgb          = color.rgb * (ambient + directional);\n\t// color.rgb          = ambient + color.rgb * ( directional);\n\n\tfloat p         = length(color.rgb) / MAX_BRIGHTNESS;\n\tvec2 uvMap      = vec2(p, .5);\n\t\n\tcolor.rgb       = mix(color.rgb, texture2D(textureGradient, uvMap).rgb, gradientOffset);\n\t// color.rgb\t\t= mix(background_color, color.rgb - vec3((1.0-vDepth)*.95), vDepth);\n\tcolor.rgb\t\t= mix(background_color, color.rgb - vec3(vDepth*.05), vDepth);\n\t// color.a \t\t*= vDepth;\n\n\tgl_FragColor = color;\n}");
+	bongiovi.View.call(this, "#define GLSLIFY 1\n\n#define SHADER_NAME VERTEX_TERRAIN\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\nuniform sampler2D textureDetail;\n\nvarying vec2 vTextureCoord;\nvarying vec4 vColor;\nvarying vec3 vNormal;\nvarying vec3 vVertexPosition;\n\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n//float n = 5.0;\n//float f = 800.0;\n\t\nfloat getDepth(float z, float n, float f) {\n\treturn (2.0 * n) / (f + n - z*(f-n));\n}\n\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvec2 contrast(vec2 mValue, float mScale, float mMidPoint) {\n\treturn vec2( contrast(mValue.r, mScale, mMidPoint), contrast(mValue.g, mScale, mMidPoint));\n}\n\nvec2 contrast(vec2 mValue, float mScale) {\n\treturn contrast(mValue, mScale, .5);\n}\n\nvec3 getPos(vec2 uv) {\n\tvec2 newUv = contrast(uv, .995);\n\tvec2 uvDetail = newUv * 3.0;\n\tfloat h = texture2D(texture, newUv).r;\n\tfloat hDetail = texture2D(textureDetail, uvDetail).r * .005;\n\th += hDetail;\n\tvec3 v;\n\n\tv.x = -W*.5 + W * newUv.x;\n\tv.z = H*.5 - H * newUv.y;\n\n\tv.y = h * 300.0 - 50.0;\n\treturn v;\n}\n\n\nconst float gap = .01;\nvarying float vDepth;\n\n\nvoid main(void) {\n\tvec4 colorHeight = texture2D(texture, aTextureCoord);\n\tvec3 pos = aVertexPosition;\n\tpos = getPos(aTextureCoord);\n\n\tvec2 uvRight = aTextureCoord+vec2(gap, 0.0);\n\tvec2 uvBottom = aTextureCoord+vec2(0.0, gap);\n\t\n\tvec3 posRight = getPos(uvRight);\n\tvec3 posBottom = getPos(uvBottom);\n\n\tvec3 vRight = posRight - pos;\n\tvec3 vBottom = posBottom - pos;\n\n\tvec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));\n    gl_Position = V;\n\n    // vDepth = mix(contrast(1.0-getDepth(V.z/V.w, 5.0, 760.0), 3.0, .375), 1.0, .95);\n    vDepth = contrast(1.0-getDepth(V.z/V.w, 5.0, 760.0), 3.5, .325);\n\n    vTextureCoord = aTextureCoord;\n\n    vColor = colorHeight;\n    vNormal = normalize(cross(vRight, vBottom));\n    if(uvRight.x >= 1.0 || uvBottom.y >= 1.0) {\n    \tvNormal = vec3(0.0, 1.0, 0.0);\n    }\n    vVertexPosition = pos;\n}", "#define GLSLIFY 1\n\n#define SHADER_NAME SIMPLE_TEXTURE\n\nprecision highp float;\nvarying vec4 vColor;\n\nvarying vec2 vTextureCoord;\nuniform sampler2D textureInk;\nuniform sampler2D textureGradient;\nuniform sampler2D textureNoise;\nvarying vec3 vNormal;\nuniform float gradientOffset;\nuniform float noiseOffset;\nvarying float vDepth;\n\nconst vec3 DIRECTIONAL_LIGHT_COLOR \t\t= vec3(1.0);\nconst vec3 AMBIENT_LIGHT_COLOR \t\t\t= vec3(.6);\nconst float DIRECTIONAL_LIGHT_WEIGHT \t= 1.5;\nconst vec3 DIRECTIONAL_LIGHT_POS \t\t= vec3(.5, 0.3, 1.0);\n\nfloat map(float value, float sx, float sy, float tx, float ty) {\n\tfloat p = (value - sx) / ( sy - sx);\n\treturn tx + p * ( ty - tx);\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvec3 contrast(vec3 mValue, float mScale, float mMidPoint) {\n\treturn vec3( contrast(mValue.r, mScale, mMidPoint), contrast(mValue.g, mScale, mMidPoint), contrast(mValue.b, mScale, mMidPoint));\n}\n\nvec3 contrast(vec3 mValue, float mScale) {\n\treturn contrast(mValue, mScale, .5);\n}\n\n\nconst vec3 background_color = vec3(1.0, 1.0, 250.0/255.0);\n\nvoid main(void) {\n\tfloat MAX_BRIGHTNESS = length(vec3(1.0));\n\t\n\tvec4 color         = texture2D(textureInk, vTextureCoord);\n\tvec2 uvNoise       = vTextureCoord * 5.0;\n\tfloat grey         = (color.r + color.g + color.b) / 3.0;\n\tgrey += .3;\n\tif(grey > 1.0) grey = 1.0;\n\t// color.rgb          = mix(color.rgb, vec3(grey), .35);\n\tcolor.rgb          = contrast(vec3(grey), 2.0);\n\t// color.rgb          *= 1.5;\n\tvec3 ambient       = AMBIENT_LIGHT_COLOR;\n\tvec3 bump \t\t   = texture2D(textureNoise, uvNoise).rgb - vec3(.5);\n\tvec3 normal        = normalize(vNormal + bump * noiseOffset);\n\tfloat lamberFactor = max(0.0, dot(normal, normalize(DIRECTIONAL_LIGHT_POS)));\n\tvec3 directional   = DIRECTIONAL_LIGHT_COLOR * lamberFactor * DIRECTIONAL_LIGHT_WEIGHT;\n\t\n\tcolor.rgb          = color.rgb * (ambient + directional);\n\t// color.rgb          = ambient + color.rgb * ( directional);\n\n\tfloat p         = length(color.rgb) / MAX_BRIGHTNESS;\n\tvec2 uvMap      = vec2(p, .5);\n\t\n\tcolor.rgb       = mix(color.rgb, texture2D(textureGradient, uvMap).rgb, gradientOffset);\n\t// color.rgb\t\t= mix(background_color, color.rgb - vec3((1.0-vDepth)*.95), vDepth);\n\tcolor.rgb\t\t= mix(background_color, color.rgb - vec3(vDepth*.05), vDepth);\n\t// color.a \t\t*= vDepth;\n\n\tgl_FragColor = color;\n}");
 }
 
 var p = ViewTerrain.prototype = new bongiovi.View();

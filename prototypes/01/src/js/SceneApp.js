@@ -137,8 +137,9 @@ p._initViews = function() {
 		// var w = new ViewWireFrame(v.positions, v.coords, v.indices);
 		// this._wireframes.push(w);
 
-		var div = document.createElement("div");
+		var div = document.createElement("li");
 		div.className = 'Footer-navigationDot';
+		// div.innerHTML = .date;
 		div.trackIndex = i;
 		div.addEventListener("click", this._navClickBind);
 		this._navDots.push(div);
@@ -223,7 +224,7 @@ p.render = function() {
 	// this.camera._ry.value += -.01;
 	this._textureVideo.updateTexture(this.video);
 
-	GL.clear(1, 1, .986, 1);
+	GL.clear(1, 1, 1, 1);
 	gl.enable(gl.CULL_FACE);
 	if(params.renderDots) this._vDotPlane.render();
 	if(params.renderHeightLines) this._vLines.render();
@@ -269,17 +270,34 @@ p.render = function() {
 	// if(params.renderStroke)	this._vCopy.render(this.fboRender.getTexture());	
 	// this._vCopy.render(this.fboBlur1.getTexture());
 
+	function formNumberString(value) {
+		var ary = value.toString().split(".");
+		var str = ary[0];
+		// while(str.length < 2) str = "0" + str;
+		if(ary[1]) {
+			str += "." + ary[1];
+			while(str.length < 5) str += "0";
+		} else {
+			str += ".00";
+		}
+		return str;	
+	}
+
 	function getPrec(value, p) {
 		var prec = p == undefined ? 100 : p;
 		return Math.floor(value*prec)/prec;
 	}
+
+
 	
-	this.pElevation.innerHTML = getPrec(this.elevation.value) + " ft";
-	this.pDistance.innerHTML = getPrec(this.distance.value) + " mi";
-	this.pDuration.innerHTML = getPrec(this.minute.value) + "m" + getPrec(this.seconds.value)+"s";
-	this.pSumDist.innerHTML = getPrec(this._totalDist.value) + " mi";
-	this.pSumElev.innerHTML = getPrec(this._totalElev.value) + " ft";
-	this.pSumRuns.innerHTML = getPrec(this.runs.value, 1) + " runs in total";
+	this.pElevation.innerHTML = formNumberString(getPrec(this.elevation.value));
+	this.pDistance.innerHTML = formNumberString(getPrec(this.distance.value));
+	this.pDuration.innerHTML = getPrec(this.minute.value) + "'" + getPrec(this.seconds.value);
+
+
+	this.pSumDist.innerHTML = getPrec(this._totalDist.value);
+	this.pSumElev.innerHTML = getPrec(this._totalElev.value);
+	this.pSumRuns.innerHTML = getPrec(this.runs.value, 1);
 };
 
 p.resize = function() {

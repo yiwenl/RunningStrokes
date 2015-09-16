@@ -3,22 +3,49 @@
 <head>
 	<title>Running Strokes</title>
 	<link rel="stylesheet" type="text/css" href="css/font.css">
+	<link href='https://fonts.googleapis.com/css?family=Roboto:300' rel='stylesheet' type='text/css'>
 	<link rel="stylesheet" type="text/css" href="css/main.css">
 	<script type="text/javascript" src="bundle/Perlin.js"></script>
 	<script type="text/javascript" src="bundle/bundle.js"></script>
 </head>
 <body>
-	<div class="Footer"></div>
-	<div class="Stats Stats--sum">
-		<p class="Stats-entry Stats-entry--runs"></p>
-		<p class="Stats-entry Stats-entry--sumDistance"></p>
-		<p class="Stats-entry Stats-entry--sumElevation"></p>
+	<div class="Footer">
+		<ul class="FooterContainer"></ul>
 	</div>
 	<div class="Stats">
-		<p class="Stats-entry Stats-entry--date">_</p>
-		<p class="Stats-entry Stats-entry--distance"></p>
-		<p class="Stats-entry Stats-entry--duration"></p>
-		<p class="Stats-entry Stats-entry--elevation"></p>
+		<div class="Stats-entryContainer">
+			<p class="Stats-entryTitle">Date</p>
+			<p class="Stats-entry Stats-entry--date"></p>
+		</div>
+		<div class="Stats-entryContainer">
+			<p class="Stats-entryTitle">Distance</p>
+			<p class="Stats-entry Stats-entry--distance"></p>
+		</div>
+		<div class="Stats-entryContainer">
+			<p class="Stats-entryTitle">Time</p>
+			<p class="Stats-entry Stats-entry--duration"></p>
+		</div>
+		<div class="Stats-entryContainer">
+			<p class="Stats-entryTitle">Elevation</p>
+			<p class="Stats-entry Stats-entry--elevation"></p>
+		</div>
+	</div>
+
+	<div class="Stats Stats--sum">
+		<div class="Stats-entryContainer">
+			<p class="Stats-entryTitle">Runs</p>
+			<p class="Stats-entry Stats-entry--runs"></p>
+		</div>
+
+		<div class="Stats-entryContainer">
+			<p class="Stats-entryTitle">Tot. Distance</p>
+			<p class="Stats-entry Stats-entry--sumDistance"></p>
+		</div>
+		
+		<div class="Stats-entryContainer">
+			<p class="Stats-entryTitle">Tot. Elevation</p>
+			<p class="Stats-entry Stats-entry--sumElevation"></p>
+		</div>
 	</div>
 	<a href="http://blog.bongiovi.tw" target="_blank"><div class="stamp"></div></a>
 	<video src="assets/video/colorVideo.mp4" autoplay loop></video>
