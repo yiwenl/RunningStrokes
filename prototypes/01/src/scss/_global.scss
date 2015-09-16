@@ -92,6 +92,10 @@ video {
 	z-index: 999;
 }
 
+.Stats--sum {
+	left:0px;
+}
+
 .Stats-entry {
 	font-family: 'Archer-Light';
 	font-size:16px;
@@ -100,4 +104,8 @@ video {
 	color:#424242;
 	clear:both;
 	float:right;
+
+	.Stats--sum & {
+		float:left;
+	}
 }

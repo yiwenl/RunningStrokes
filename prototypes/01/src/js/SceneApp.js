@@ -35,10 +35,15 @@ function SceneApp() {
 	this.distance   = new bongiovi.EaseNumber(0, .05);
 	this.minute     = new bongiovi.EaseNumber(0, 1);
 	this.seconds    = new bongiovi.EaseNumber(0, 1);
+	this.runs    	= new bongiovi.EaseNumber(0, .05);
+	this.runs.value = tracks.length+1;
 	
 	this.pElevation = document.querySelector('.Stats-entry--elevation');
 	this.pDistance  = document.querySelector('.Stats-entry--distance');
 	this.pDuration  = document.querySelector('.Stats-entry--duration');
+	this.pSumDist   = document.querySelector('.Stats-entry--sumDistance');
+	this.pSumElev   = document.querySelector('.Stats-entry--sumElevation');
+	this.pSumRuns   = document.querySelector('.Stats-entry--runs');
 
 	this._selectedIndex = -1;
 	this.selectTrack(0);
@@ -117,7 +122,13 @@ p._initViews = function() {
 	this._wireframes = [];
 	this._navDots = [];
 	this._navClickBind = this._onNavDot.bind(this);
+
+	this.sumDistance = 0;
+	this.sumElevation = 0;
+
+
 	for(var i=0; i<tracks.length; i++) {
+		var track = tracks[i];
 		var v = new ViewCalligraphy(tracks[i].trackpoints, i*25);
 		this._calligraphies.push(v);
 
@@ -131,7 +142,15 @@ p._initViews = function() {
 		this._navDots.push(div);
 
 		container.appendChild(div);
+
+		this.sumDistance += track.totalDistance;
+		this.sumElevation += track.elevationGain;
 	}
+
+	this._totalDist = new bongiovi.EaseNumber(0);
+	this._totalDist.value = this.sumDistance;
+	this._totalElev = new bongiovi.EaseNumber(0);
+	this._totalElev.value = this.sumElevation;
 };
 
 
@@ -247,14 +266,17 @@ p.render = function() {
 	if(params.renderStroke)	this._vPost.render(this.fboRender.getTexture(), this._textureVideo, this._textureGradient);	
 	// this._vCopy.render(this.fboBlur1.getTexture());
 
-	function getPrec(value) {
-		var prec = 100;
+	function getPrec(value, p) {
+		var prec = p == undefined ? 100 : p;
 		return Math.floor(value*prec)/prec;
 	}
 	
 	this.pElevation.innerHTML = getPrec(this.elevation.value) + " ft";
 	this.pDistance.innerHTML = getPrec(this.distance.value) + " mi";
 	this.pDuration.innerHTML = getPrec(this.minute.value) + "m" + getPrec(this.seconds.value)+"s";
+	this.pSumDist.innerHTML = getPrec(this._totalDist.value) + " mi";
+	this.pSumElev.innerHTML = getPrec(this._totalElev.value) + " ft";
+	this.pSumRuns.innerHTML = getPrec(this.runs.value, 1) + " runs in total";
 };
 
 p.resize = function() {

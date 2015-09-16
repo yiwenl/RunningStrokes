@@ -30,7 +30,7 @@ function getPoint(p) {
 
 function ViewCalligraphy(points, y) {
 	this.y = y === undefined ? 0 : y;
-	this.textureIndex = Math.floor(Math.random() * 5	);
+	this.textureIndex = Math.floor(Math.random() * 5);
 	this._points = this._simplifyPoints(points);
 	this.opacity = new bongiovi.EaseNumber(1);
 	this.progress = new bongiovi.EaseNumber(0, .025);
@@ -80,7 +80,7 @@ p.unSelect = function() {
 
 p._init = function() {
 	gl = GL.gl;
-	this._particles = MathUtils.getBezierPoints(this._points, this._points.length*4);
+	this._particles = MathUtils.getBezierPoints(this._points, this._points.length*3);
 
 	var dir = glm.vec3.create();
 	var z = glm.vec3.fromValues(0, 1, 0);
