@@ -266,8 +266,10 @@ p.render = function() {
 	if(params.renderDots) this._vDotPlane.render();
 	if(params.renderHeightLines) this._vLines.render();
 	if(params.renderTerrain) this._vTerrain.render(this._textureHeight, this._textureInk, this._textureGradient, this._textureNoise, this._textureDetail);
+	gl.disable(gl.DEPTH_TEST);
 	this._vDistance.render(this._textureDist);
 	this._vElevation.render(this._textureElv);
+	gl.enable(gl.DEPTH_TEST);
 	gl.disable(gl.CULL_FACE);
 
 	this.fboRender.bind();
@@ -310,11 +312,14 @@ p.updateTextures = function() {
 	var W = this.canvasDist.width;
 	this.ctxDist.clearRect(0, 0, W, W/2);
 	this.ctxDist.textAlign = "center";
+	var fill = "rgba(180, 180, 180, 1)";
+	this.ctxDist.fillStyle = fill;
 	this.ctxDist.font = "26px Roboto";
 	this.ctxDist.fillText(getPrec(this.distance.value).toString() + " miles", W/2, W/2);
 
 	this.ctxElv.clearRect(0, 0, W, W/2);
 	this.ctxElv.textAlign = "center";
+	this.ctxElv.fillStyle = fill;
 	this.ctxElv.font = "46px Roboto";
 	this.ctxElv.fillText(getPrec(this.elevation.value).toString() + " ft", W/2, W/2);
 

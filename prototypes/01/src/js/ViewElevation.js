@@ -18,12 +18,13 @@ p._init = function() {
 	var indices = [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]; 
 
 	var tx = 300.0;
-	var ty = 100.0;
+	var ty = 110.0;
 	var size = 50;
+	var yscale = 1;
 	positions.push([tx,  ty, -size])
 	positions.push([tx,  ty,  size])
-	positions.push([tx, size/2+ty,  size])
-	positions.push([tx, size/2+ty, -size])
+	positions.push([tx, size*yscale+ty,  size])
+	positions.push([tx, size*yscale+ty, -size])
 
 	coords.push([0, 0]);
 	coords.push([1, 0]);
@@ -32,8 +33,8 @@ p._init = function() {
 
 	positions.push([-tx,  ty,  size])
 	positions.push([-tx,  ty, -size])
-	positions.push([-tx, size/2+ty, -size])
-	positions.push([-tx, size/2+ty,  size])
+	positions.push([-tx, size*yscale+ty, -size])
+	positions.push([-tx, size*yscale+ty,  size])
 
 	coords.push([0, 0]);
 	coords.push([1, 0]);
