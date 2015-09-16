@@ -7,7 +7,7 @@ html, body {
 
 	overflow:hidden;
 	position: static;
-	background: rgba(255, 255, 250, 1);
+	background: white;
 }
 
 html {
@@ -19,6 +19,15 @@ html {
 h1,h2,h3,h4,text,p {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-webkit-font-smoothing: antialiased;
+}
+
+.UI {
+	opacity: 0;
+	transition:all .5s ease-out;
+
+	&.is-Opened {
+		opacity: 1;
+	}
 }
 
 .Main-Canvas {
@@ -153,4 +162,12 @@ video {
 	.Stats--sum & {
 		float:left;
 	}
+}
+
+
+.debugCanvas {
+	position: absolute;
+	z-index: 0999999;
+	left: 0;
+	top: 0;
 }

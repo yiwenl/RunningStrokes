@@ -11,7 +11,7 @@ varying float vDepth;
 varying vec3 vNormal;
 
 
-const vec3 background_color = vec3(1.0, 1.0, 250.0/255.0);
+const vec3 background_color = vec3(1.0, 1.0, 1.0);
 const float range = .1;
 const float PI = 3.141592657;
 

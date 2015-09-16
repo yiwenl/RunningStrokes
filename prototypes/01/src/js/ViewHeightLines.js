@@ -70,7 +70,7 @@ p.render = function() {
 	this.shader.uniform("position", "uniform3fv", [0, -60, 0]);
 	var scale = .65;
 	this.shader.uniform("scale", "uniform3fv", [.8, 2.0, .65]);
-	var grey = .75;
+	var grey = .5;
 	this.shader.uniform("color", "uniform3fv", [grey, grey, grey]);
 	this.shader.uniform("opacity", "uniform1f", 1.0);
 	GL.draw(this.mesh);

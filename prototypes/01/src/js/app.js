@@ -60,7 +60,7 @@ window.params = {
 		this._scene = new SceneApp();
 		bongiovi.Scheduler.addEF(this, this._loop);
 
-		// return;
+		return;
 		this.gui = new dat.GUI({width:300});
 		this.gui.add(params, "gradientOffset", 0, 1);
 		this.gui.add(params, "noiseOffset", 0, 1);

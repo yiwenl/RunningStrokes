@@ -5,7 +5,7 @@ html, body {
   padding: 0;
   overflow: hidden;
   position: static;
-  background: #fffffa; }
+  background: white; }
 
 html {
   -webkit-text-size-adjust: none;
@@ -15,6 +15,12 @@ html {
 h1, h2, h3, h4, text, p {
   -webkit-font-smoothing: antialiased;
   -moz-osx-webkit-font-smoothing: antialiased; }
+
+.UI {
+  opacity: 0;
+  transition: all .5s ease-out; }
+  .UI.is-Opened {
+    opacity: 1; }
 
 .Main-Canvas {
   width: 100%;
@@ -135,3 +141,9 @@ video {
   margin-top: -17.5px; }
   .Stats--sum .Stats-entry {
     float: left; }
+
+.debugCanvas {
+  position: absolute;
+  z-index: 0999999;
+  left: 0;
+  top: 0; }
