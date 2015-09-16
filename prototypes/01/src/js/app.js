@@ -17,6 +17,7 @@ window.params = {
 	App = function() {
 
 		var toLoad = [
+			"assets/paperNormal.jpg",
 			"assets/heightMap.png",
 			"assets/noise.png",
 			"assets/detailHeight.png",

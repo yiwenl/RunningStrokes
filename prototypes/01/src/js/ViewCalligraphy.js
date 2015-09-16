@@ -129,6 +129,7 @@ p._init = function() {
 	var positions = [];
 	var coords = [];
 	var indices = [];
+	var normals = [];
 
 	var p0, p1, p2, p3;
 	var s = 1/(this._quads.length-1);
@@ -138,8 +139,8 @@ p._init = function() {
 	for(var i=0; i<this._quads.length-1; i++) {
 		var curr = this._quads[i];
 		var next = this._quads[i+1];
-		var norm0 = this._normals[i];
-		var norm1 = this._normals[i+1];
+		var norm0 = this._normals[i];	//	curr
+		var norm1 = this._normals[i+1];	//	next
 
 		p0 = curr[2];
 		p1 = next[2];
@@ -150,6 +151,11 @@ p._init = function() {
 		positions.push([ p1[0], p1[1]*yOffset, p1[2] ]);
 		positions.push([ p2[0], p2[1]*yOffset, p2[2] ]);
 		positions.push([ p3[0], p3[1]*yOffset, p3[2] ]);
+
+		normals.push(norm0);
+		normals.push(norm1);
+		normals.push(norm1);
+		normals.push(norm0);
 
 		coords.push([s*i, .5]);
 		coords.push([s*(i+1), .5]);
@@ -175,6 +181,11 @@ p._init = function() {
 		positions.push([ p2[0], p2[1]*yOffset, p2[2] ]);
 		positions.push([ p3[0], p3[1]*yOffset, p3[2] ]);
 
+		normals.push(norm0);
+		normals.push(norm1);
+		normals.push(norm1);
+		normals.push(norm0);
+
 		coords.push([s*i, .0]);
 		coords.push([s*(i+1), 0]);
 		coords.push([s*(i+1), .5]);
@@ -198,15 +209,18 @@ p._init = function() {
 	this.mesh.bufferVertex(positions);
 	this.mesh.bufferTexCoords(coords);
 	this.mesh.bufferIndices(indices);
+	this.mesh.bufferData(normals, "aNormals", 3);
 };
 
-p.render = function(texture, y) {
+p.render = function(texture, textureNormal, y) {
 	if(!this.shader.isReady() ) return;
 
 	this.shader.bind();
 	if(texture) {
 		this.shader.uniform("texture", "uniform1i", 0);
 		texture.bind(0);
+		this.shader.uniform("textureNormal", "uniform1i", 1);
+		textureNormal.bind(1);
 	}
 	this.shader.uniform("position", "uniform3fv", [0, y === undefined ? this.y : y, 0]);
 	this.shader.uniform("scale", "uniform3fv", [1, 1, 1]);

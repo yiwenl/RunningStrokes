@@ -88,6 +88,8 @@ p._initTextures = function() {
 	this._textureDetail = new bongiovi.GLTexture(images.detailHeight);
 	this._textureHeight = new bongiovi.GLTexture(images.heightMap);
 	this._textureNoise  = new bongiovi.GLTexture(images.noise);
+	this._textureNormal = new bongiovi.GLTexture(images.paperNormal);
+
 	var index = Math.floor(Math.random() * 33);
 	this._textureInk = new bongiovi.GLTexture(images["inkDrops" + index]);
 	this._textureGradient = new bongiovi.GLTexture(images.gradientMap);
@@ -234,10 +236,10 @@ p.render = function() {
 	for(var i=0; i<this._calligraphies.length; i++) {
 		var v = this._calligraphies[i];
 		if(this._selectedIndex == -1) {
-			v.render(this._brushes[v.textureIndex]);	
+			v.render(this._brushes[v.textureIndex], this._textureNormal);	
 		} else {
 			if(i === this._selectedIndex) {
-				v.render(this._brushes[v.textureIndex], 0);	
+				v.render(this._brushes[v.textureIndex], this._textureNormal, 0);	
 				// var w = this._wireframes[i];
 				// w.render();
 			}	
@@ -264,6 +266,7 @@ p.render = function() {
 	*/
 
 	if(params.renderStroke)	this._vPost.render(this.fboRender.getTexture(), this._textureVideo, this._textureGradient);	
+	// if(params.renderStroke)	this._vCopy.render(this.fboRender.getTexture());	
 	// this._vCopy.render(this.fboBlur1.getTexture());
 
 	function getPrec(value, p) {

@@ -2,6 +2,7 @@
 
 precision highp float;
 attribute vec3 aVertexPosition;
+attribute vec3 aNormals;
 attribute vec2 aTextureCoord;
 
 uniform vec3 position;
@@ -9,9 +10,11 @@ uniform mat4 uMVMatrix;
 uniform mat4 uPMatrix;
 uniform sampler2D texture;
 
+
 varying vec2 vTextureCoord;
 varying vec3 vVertexPosition;
 varying float vDepth;
+varying vec3 vNormal;
 
 const float W = 660.0;
 const float H = 428.0;
@@ -39,4 +42,8 @@ void main(void) {
     vDepth = contrast(1.0-getDepth(V.z/V.w, 5.0, 800.0), 4.0, .375);
 
     vTextureCoord = aTextureCoord;
+    vec3 N = aNormals;
+    N.x *= 5.0;
+
+    vNormal = normalize(N);
 }

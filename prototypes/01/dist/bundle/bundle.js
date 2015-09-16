@@ -18,6 +18,7 @@ window.params = {
 	App = function() {
 
 		var toLoad = [
+			"assets/paperNormal.jpg",
 			"assets/heightMap.png",
 			"assets/noise.png",
 			"assets/detailHeight.png",
@@ -4688,6 +4689,8 @@ p._initTextures = function() {
 	this._textureDetail = new bongiovi.GLTexture(images.detailHeight);
 	this._textureHeight = new bongiovi.GLTexture(images.heightMap);
 	this._textureNoise  = new bongiovi.GLTexture(images.noise);
+	this._textureNormal = new bongiovi.GLTexture(images.paperNormal);
+
 	var index = Math.floor(Math.random() * 33);
 	this._textureInk = new bongiovi.GLTexture(images["inkDrops" + index]);
 	this._textureGradient = new bongiovi.GLTexture(images.gradientMap);
@@ -4834,10 +4837,10 @@ p.render = function() {
 	for(var i=0; i<this._calligraphies.length; i++) {
 		var v = this._calligraphies[i];
 		if(this._selectedIndex == -1) {
-			v.render(this._brushes[v.textureIndex]);	
+			v.render(this._brushes[v.textureIndex], this._textureNormal);	
 		} else {
 			if(i === this._selectedIndex) {
-				v.render(this._brushes[v.textureIndex], 0);	
+				v.render(this._brushes[v.textureIndex], this._textureNormal, 0);	
 				// var w = this._wireframes[i];
 				// w.render();
 			}	
@@ -4864,6 +4867,7 @@ p.render = function() {
 	*/
 
 	if(params.renderStroke)	this._vPost.render(this.fboRender.getTexture(), this._textureVideo, this._textureGradient);	
+	// if(params.renderStroke)	this._vCopy.render(this.fboRender.getTexture());	
 	// this._vCopy.render(this.fboBlur1.getTexture());
 
 	function getPrec(value, p) {
@@ -4958,7 +4962,7 @@ function ViewCalligraphy(points, y) {
 	this.opacity = new bongiovi.EaseNumber(1);
 	this.progress = new bongiovi.EaseNumber(0, .025);
 
-	bongiovi.View.call(this, "#define GLSLIFY 1\n\n// calligraphy.vert\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nuniform vec3 position;\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\n\nvarying vec2 vTextureCoord;\nvarying vec3 vVertexPosition;\nvarying float vDepth;\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n//float n = 5.0;\n//float f = 800.0;\n\t\nfloat getDepth(float z, float n, float f) {\n\treturn (2.0 * n) / (f + n - z*(f-n));\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvoid main(void) {\n\tvec3 pos = aVertexPosition + position;\n\tvec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));\n    gl_Position = V;\n\n    vDepth = contrast(1.0-getDepth(V.z/V.w, 5.0, 800.0), 4.0, .375);\n\n    vTextureCoord = aTextureCoord;\n}", "#define GLSLIFY 1\n\n// calligraphy.frag\n\nprecision mediump float;\n\nuniform sampler2D texture;\nvarying vec2 vTextureCoord;\nuniform float opacity;\nuniform float progress;\nvarying float vDepth;\n\nconst vec3 background_color = vec3(1.0, 1.0, 250.0/255.0);\nconst float range = .1;\nconst float PI = 3.141592657;\n\nvoid main(void) {\n    vec4 color = texture2D(texture, vTextureCoord);\n    if(color.a < .05) discard;\n\n    float offset = 0.0;\n    if(vTextureCoord.x < progress) offset = 1.0;\n    else if(vTextureCoord.x < progress + range) {\n    \toffset = cos((vTextureCoord.x - progress) / range * PI * .5);\n    }\n\n    // color.rgb\t\t= mix(background_color, color.rgb, mix(vDepth, 1.0,);\n\n    gl_FragColor = color * opacity * offset;\n}");
+	bongiovi.View.call(this, "#define GLSLIFY 1\n\n// calligraphy.vert\n\nprecision highp float;\nattribute vec3 aVertexPosition;\nattribute vec3 aNormals;\nattribute vec2 aTextureCoord;\n\nuniform vec3 position;\nuniform mat4 uMVMatrix;\nuniform mat4 uPMatrix;\nuniform sampler2D texture;\n\n\nvarying vec2 vTextureCoord;\nvarying vec3 vVertexPosition;\nvarying float vDepth;\nvarying vec3 vNormal;\n\nconst float W = 660.0;\nconst float H = 428.0;\n\n//float n = 5.0;\n//float f = 800.0;\n\t\nfloat getDepth(float z, float n, float f) {\n\treturn (2.0 * n) / (f + n - z*(f-n));\n}\n\nfloat contrast(float mValue, float mScale, float mMidPoint) {\n\treturn clamp( (mValue - mMidPoint) * mScale + mMidPoint, 0.0, 1.0);\n}\n\nfloat contrast(float mValue, float mScale) {\n\treturn contrast(mValue,  mScale, .5);\n}\n\nvoid main(void) {\n\tvec3 pos = aVertexPosition + position;\n\tvec4 V = uPMatrix * (uMVMatrix * vec4(pos, 1.0));\n    gl_Position = V;\n\n    vDepth = contrast(1.0-getDepth(V.z/V.w, 5.0, 800.0), 4.0, .375);\n\n    vTextureCoord = aTextureCoord;\n    vec3 N = aNormals;\n    N.x *= 5.0;\n\n    vNormal = normalize(N);\n}", "#define GLSLIFY 1\n\n// calligraphy.frag\n\nprecision mediump float;\n\nuniform sampler2D texture;\nuniform sampler2D textureNormal;\nvarying vec2 vTextureCoord;\nuniform float opacity;\nuniform float progress;\nvarying float vDepth;\nvarying vec3 vNormal;\n\n\nconst vec3 background_color = vec3(1.0, 1.0, 250.0/255.0);\nconst float range = .1;\nconst float PI = 3.141592657;\n\nconst vec3 DIRECTIONAL_LIGHT_COLOR \t\t= vec3(1.0);\nconst vec3 AMBIENT_LIGHT_COLOR \t\t\t= vec3(.1);\nconst float DIRECTIONAL_LIGHT_WEIGHT \t= 2.0;\nconst vec3 DIRECTIONAL_LIGHT_POS \t\t= vec3(.5, 0.3, 1.0);\n\nvoid main(void) {\n    vec4 color = texture2D(texture, vTextureCoord);\n    if(color.a < .05) discard;\n\n    float offset = 0.0;\n    if(vTextureCoord.x < progress) offset = 1.0;\n    else if(vTextureCoord.x < progress + range) {\n    \toffset = cos((vTextureCoord.x - progress) / range * PI * .5);\n    }\n\n    vec2 uvNormal \t   = vTextureCoord*25.0;\n    uvNormal.y \t\t   *= .05;\n    vec3 bump \t\t   = (texture2D(textureNormal, uvNormal).rgb-.5) * 2.0;\n    vec3 normal        = normalize(vNormal + bump * .5);\n\tvec3 ambient       = AMBIENT_LIGHT_COLOR;\n\tfloat lamberFactor = max(0.0, dot(normal, normalize(DIRECTIONAL_LIGHT_POS)));\n\tvec3 directional   = DIRECTIONAL_LIGHT_COLOR * lamberFactor * DIRECTIONAL_LIGHT_WEIGHT;\n\n\tcolor.rgb          = color.rgb * (ambient + directional);\n\n    gl_FragColor = color * opacity * offset;\n\n\n    //\tdebug normal\n    // gl_FragColor.rgb = (vNormal + 1.0) * .5;\n}");
 }
 
 var p = ViewCalligraphy.prototype = new bongiovi.View();
@@ -5052,6 +5056,7 @@ p._init = function() {
 	var positions = [];
 	var coords = [];
 	var indices = [];
+	var normals = [];
 
 	var p0, p1, p2, p3;
 	var s = 1/(this._quads.length-1);
@@ -5061,8 +5066,8 @@ p._init = function() {
 	for(var i=0; i<this._quads.length-1; i++) {
 		var curr = this._quads[i];
 		var next = this._quads[i+1];
-		var norm0 = this._normals[i];
-		var norm1 = this._normals[i+1];
+		var norm0 = this._normals[i];	//	curr
+		var norm1 = this._normals[i+1];	//	next
 
 		p0 = curr[2];
 		p1 = next[2];
@@ -5073,6 +5078,11 @@ p._init = function() {
 		positions.push([ p1[0], p1[1]*yOffset, p1[2] ]);
 		positions.push([ p2[0], p2[1]*yOffset, p2[2] ]);
 		positions.push([ p3[0], p3[1]*yOffset, p3[2] ]);
+
+		normals.push(norm0);
+		normals.push(norm1);
+		normals.push(norm1);
+		normals.push(norm0);
 
 		coords.push([s*i, .5]);
 		coords.push([s*(i+1), .5]);
@@ -5098,6 +5108,11 @@ p._init = function() {
 		positions.push([ p2[0], p2[1]*yOffset, p2[2] ]);
 		positions.push([ p3[0], p3[1]*yOffset, p3[2] ]);
 
+		normals.push(norm0);
+		normals.push(norm1);
+		normals.push(norm1);
+		normals.push(norm0);
+
 		coords.push([s*i, .0]);
 		coords.push([s*(i+1), 0]);
 		coords.push([s*(i+1), .5]);
@@ -5121,15 +5136,18 @@ p._init = function() {
 	this.mesh.bufferVertex(positions);
 	this.mesh.bufferTexCoords(coords);
 	this.mesh.bufferIndices(indices);
+	this.mesh.bufferData(normals, "aNormals", 3);
 };
 
-p.render = function(texture, y) {
+p.render = function(texture, textureNormal, y) {
 	if(!this.shader.isReady() ) return;
 
 	this.shader.bind();
 	if(texture) {
 		this.shader.uniform("texture", "uniform1i", 0);
 		texture.bind(0);
+		this.shader.uniform("textureNormal", "uniform1i", 1);
+		textureNormal.bind(1);
 	}
 	this.shader.uniform("position", "uniform3fv", [0, y === undefined ? this.y : y, 0]);
 	this.shader.uniform("scale", "uniform3fv", [1, 1, 1]);
